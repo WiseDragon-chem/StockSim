@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>模拟股市学习</title>
+    <!-- 1. 锁定版本号 @4.1.1，避免版本差异 -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .container { display: flex; gap: 20px; }
+        /* 2. 修改样式里的 ID */
+        #chart-container { width: 600px; height: 400px; border: 1px solid #ccc; }
+        .panel { width: 300px; }
+    </style>
+</head>
+<body>
+
+    <h1>简易股市模拟器</h1>
+    
+    <div id="login-section">
+        <h3>1. 登录</h3>
+        <input type="text" id="username" placeholder="用户名">
+        <input type="password" id="password" placeholder="密码">
+        <button onclick="login()">登录</button>
+        <p id="login-status">未登录</p>
+    </div>
+
+    <hr>
+
+    <div class="container">
+        <!-- 3. 修改 ID，避免与变量名 chart 冲突 -->
+        <div id="chart-container"></div>
+
+        <div class="panel">
+            <h3>2. 查询股票</h3>
+            <input type="text" id="symbol" value="600519" placeholder="股票代码">
+            <button onclick="loadChart()">加载K线</button>
+
+            <h3>3. 交易操作</h3>
+            <p>当前价格(模拟): <span id="current-price">0</span></p>
+            <input type="number" id="qty" value="100" placeholder="数量">
+            <button onclick="buy()">买入</button>
+            <p id="trade-msg"></p>
+        </div>
+    </div>
+
+    <script>
+        let token = "";
+        let currentPrice = 0;
+        
+        // 定义全局变量，但不要立即赋值
+        let chartInstance = null;
+        let candlestickSeries = null;
+
+        // 4. 核心修复：确保 DOM 加载完毕后再创建图表
+        document.addEventListener('DOMContentLoaded', () => {
+            const chartDom = document.getElementById('chart-container');
+            
+            // 创建图表实例
+            chartInstance = LightweightCharts.createChart(chartDom, { 
+                width: 600, 
+                height: 400,
+                layout: {
+                    background: { color: '#ffffff' },
+                    textColor: '#333',
+                },
+                grid: {
+                    vertLines: { color: '#f0f3fa' },
+                    horzLines: { color: '#f0f3fa' },
+                },
+            });
+            
+            // 创建K线系列
+            candlestickSeries = chartInstance.addCandlestickSeries();
+            
+            // 自动调整大小
+            window.addEventListener('resize', () => {
+                chartInstance.resize(600, 400); // 简单处理，实际可动态计算
+            });
+        });
+
+        // 登录逻辑
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            try {
+                const res = await fetch('/api/users/login', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    token = data.access_token;
+                    document.getElementById('login-status').innerText = "登录成功！";
+                    document.getElementById('login-status').style.color = "green";
+                } else {
+                    alert("登录失败");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("连接服务器失败");
+            }
+        }
+
+        // 加载K线
+        async function loadChart() {
+            // 安全检查
+            if (!candlestickSeries) {
+                console.error("图表尚未初始化");
+                return;
+            }
+
+            const symbol = document.getElementById('symbol').value;
+            try {
+                const res = await fetch(`/api/market/${symbol}`);
+                const data = await res.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    candlestickSeries.setData(data);
+                    // 适配视图
+                    chartInstance.timeScale().fitContent();
+                    
+                    // 更新价格
+                    currentPrice = data[data.length - 1].close;
+                    document.getElementById('current-price').innerText = currentPrice;
+                } else {
+                    alert("未获取到数据，请检查代码或等待AkShare响应");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("请求数据出错");
+            }
+        }
+
+        // 买入逻辑
+        async function buy() {
+            if (!token) { alert("请先登录！"); return; }
+
+            const symbol = document.getElementById('symbol').value;
+            const qty = parseInt(document.getElementById('qty').value);
+
+            try {
+                const res = await fetch('/api/trade/buy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        price: currentPrice,
+                        quantity: qty
+                    })
+                });
+
+                const data = await res.json();
+                document.getElementById('trade-msg').innerText = JSON.stringify(data);
+            } catch (e) {
+                console.error(e);
+                alert("交易请求失败");
+            }
+        }
+    </script>
+</body>
+</html>
