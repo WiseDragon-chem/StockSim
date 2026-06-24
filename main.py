@@ -3,15 +3,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from database import engine, Base
 from routers import users, market, trade, ws
-import asyncio
-from contextlib import asynccontextmanager
-import os
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    from routers.ws import price_updater
-    asyncio.create_task(price_updater())
-    yield
 
 # 1. 创建数据库表 (如果不存在)
 Base.metadata.create_all(bind=engine)
@@ -42,4 +33,4 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="192.168.7.3", port=7999)
+    uvicorn.run(app, host="127.0.0.1", port=7999)

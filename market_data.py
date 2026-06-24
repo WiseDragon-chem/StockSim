@@ -1,10 +1,12 @@
-import akshare as ak
-import pandas as pd
-import json
 import os
-import time
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import numpy as np
+import akshare as ak
+import pandas as pd
+import requests
 
 # 缓存配置
 CACHE_DIR = Path("cache")
@@ -68,6 +70,182 @@ def get_latest_date_from_cache(symbol: str, period: str) -> str:
         return cached_data[0]['time']  # 假设数据按时间倒序排列
     return None
 
+def _convert_item(item: dict) -> dict:
+    """将 DataFrame 转换后的字典中的 numpy 类型转为原生 Python 类型，确保 JSON 可序列化。"""
+    for key, val in item.items():
+        # NaN 必须最先检查 — numpy NaN 同时满足 floating 和 isna，需优先转为 None
+        if pd.isna(val):
+            item[key] = None
+        elif isinstance(val, (pd.Timestamp, datetime)):
+            item[key] = val.strftime('%Y-%m-%d')
+        elif isinstance(val, (np.floating,)):
+            item[key] = float(val)
+        elif isinstance(val, (np.integer,)):
+            item[key] = int(val)
+    return item
+
+
+# ── 数据源（直连东方财富 API，绕过系统代理）──────────────────────
+_EASTMONEY_KLINE_URL = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+_PERIOD_TO_KLT = {"daily": 101, "weekly": 102, "monthly": 103}
+NAME_CACHE_EXPIRY_DAYS = 7
+# 直连 API 不使用系统代理
+_REQ_PROXIES = {"http": None, "https": None}
+
+
+def _get_secid(symbol: str) -> str:
+    """A 股代码 → 东方财富 secid（1.xxx = 沪市, 0.xxx = 深市）。"""
+    if symbol[:1] in ("5", "6", "9"):
+        return f"1.{symbol}"
+    return f"0.{symbol}"
+
+
+def _fetch_kline_eastmoney(symbol: str, period: str, start_date: str):
+    """用 requests 直连东方财富 K 线 API，绕过代理。"""
+    klt = _PERIOD_TO_KLT.get(period, 101)
+    end_date = datetime.now().strftime("%Y%m%d")
+    secid = _get_secid(symbol)
+
+    params = {
+        "fields1": "f1,f2,f3,f4,f5,f6",
+        "fields2": "f51,f52,f53,f54,f55,f56,f57",
+        "klt": klt,
+        "fqt": 1,
+        "secid": secid,
+        "beg": start_date,
+        "end": end_date,
+    }
+
+    r = requests.get(_EASTMONEY_KLINE_URL, params=params, timeout=30, proxies=_REQ_PROXIES)
+    r.raise_for_status()
+    body = r.json()
+
+    if body.get("rc") != 0 or body.get("data") is None:
+        return None
+
+    klines = body["data"].get("klines", [])
+    if not klines:
+        return None
+
+    # klines 格式: "2025-06-03,1456.45,1457.15,..." (date, open, close, high, low, vol, amount)
+    rows = []
+    for line in klines:
+        parts = line.split(",")
+        if len(parts) < 5:
+            continue
+        rows.append({
+            "time": parts[0],
+            "open": float(parts[1]),
+            "close": float(parts[2]),
+            "high": float(parts[3]),
+            "low": float(parts[4]),
+        })
+
+    return pd.DataFrame(rows)
+
+
+def _fetch_kline_akshare(symbol: str, period: str, start_date: str):
+    """AkShare（备用源）。"""
+    df = ak.stock_zh_a_hist(
+        symbol=symbol,
+        period=period,
+        start_date=start_date,
+        adjust="qfq",
+    )
+    if df.empty:
+        return None
+    df = df.rename(columns={
+        "日期": "time",
+        "开盘": "open",
+        "最高": "high",
+        "最低": "low",
+        "收盘": "close",
+    })
+    return df[["time", "open", "high", "low", "close"]]
+
+
+def _fetch_kline(symbol: str, period: str, start_date: str):
+    """先东方财富直连，后 AkShare；都失败返回 None。"""
+    for name, fetcher in [
+        ("eastmoney", _fetch_kline_eastmoney),
+        ("akshare", _fetch_kline_akshare),
+    ]:
+        try:
+            df = fetcher(symbol, period, start_date)
+            if df is not None:
+                print(f"  数据源: {name}")
+                return df
+        except Exception as e:
+            print(f"  {name} 获取失败: {e}")
+    return None
+
+
+def get_stock_name(symbol: str) -> str:
+    """获取股票中文名称（7 天缓存，直连东方财富 API）。"""
+    cache_file = CACHE_DIR / f"{symbol}_name.json"
+
+    # 1. 缓存命中
+    if cache_file.exists():
+        cache_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
+        if datetime.now() - cache_time < timedelta(days=NAME_CACHE_EXPIRY_DAYS):
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    return json.load(f).get("name", "未知股票")
+            except Exception:
+                pass
+
+    # 2. 从东方财富 K 线接口取名称（只取 1 天数据，响应极小）
+    try:
+        secid = _get_secid(symbol)
+        today = datetime.now().strftime("%Y%m%d")
+        params = {
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58",
+            "klt": 101,
+            "fqt": 1,
+            "secid": secid,
+            "beg": today,
+            "end": today,
+        }
+        r = requests.get(_EASTMONEY_KLINE_URL, params=params, timeout=10, proxies=_REQ_PROXIES)
+        r.raise_for_status()
+        body = r.json()
+        name = body.get("data", {}).get("name", "")
+        if name:
+            _save_name_cache(cache_file, symbol, name)
+            return name
+    except Exception as e:
+        print(f"  eastmoney 名称获取失败: {e}")
+
+    # 3. 回退 AkShare
+    try:
+        stock_info = ak.stock_individual_info_em(symbol=symbol)
+        if not stock_info.empty:
+            name_row = stock_info[stock_info["item"] == "股票简称"]
+            if not name_row.empty:
+                name = str(name_row["value"].iloc[0])
+                _save_name_cache(cache_file, symbol, name)
+                return name
+    except Exception as e:
+        print(f"  akshare 名称获取失败: {e}")
+
+    return "未知股票"
+
+
+def _save_name_cache(cache_file: Path, symbol: str, name: str):
+    """写入名称缓存文件。"""
+    ensure_cache_dir()
+    try:
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {"symbol": symbol, "name": name, "cached_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
+                f,
+                ensure_ascii=False,
+            )
+    except Exception as e:
+        print(f"名称缓存写入失败: {e}")
+
+
 def merge_data(existing_data: list, new_data: list) -> list:
     """合并现有数据和新数据（去重）"""
     if not existing_data:
@@ -113,40 +291,21 @@ def get_stock_kline(symbol: str, period: str = "daily"):
             next_day = latest_date + timedelta(days=1)
             start_date = next_day.strftime('%Y%m%d')
         
-        # AkShare 的 stock_zh_a_hist 完美支持 period 参数
-        df = ak.stock_zh_a_hist(
-            symbol=symbol, 
-            period=period, 
-            start_date=start_date,
-            adjust="qfq"
-        )
-        
-        if df.empty:
+        # 使用双数据源获取（efinance 优先，AkShare 备用）
+        df = _fetch_kline(symbol, period, start_date)
+
+        if df is None or df.empty:
             # 如果没有新数据，返回现有缓存或空列表
             existing_data = load_from_cache(symbol, period) or []
             return existing_data
 
-        # 重命名列
-        df = df.rename(columns={
-            "日期": "time",
-            "开盘": "open",
-            "最高": "high",
-            "最低": "low",
-            "收盘": "close"
-        })
-        
-        # 只需要这5列
-        data = df[["time", "open", "high", "low", "close"]]
-        
-        # 转换为字典列表，并确保日期时间可序列化
-        new_data = data.to_dict(orient="records")
-        
-        # 将 datetime64 对象转换为字符串
-        for item in new_data:
-            if isinstance(item['time'], (pd.Timestamp, datetime)):
-                item['time'] = item['time'].strftime('%Y-%m-%d')
-                print(type(item['time']))
-        # print(new_data)
+        # 转换为字典列表
+        new_data = df.to_dict(orient="records")
+
+        # 将所有 numpy 类型转为原生 Python 类型（确保 JSON 可序列化）
+        new_data = [_convert_item(item) for item in new_data]
+        # 按日期倒序（最新在前），保证缓存数据顺序一致
+        new_data.sort(key=lambda x: x["time"], reverse=True)
         
         # 合并新数据和现有缓存数据
         existing_data = load_from_cache(symbol, period) or []
