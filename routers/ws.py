@@ -4,6 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 
 from market_data import get_stock_kline
+from mock_data import get_mock_latest_bar, is_mock_symbol
 
 router = APIRouter()
 
@@ -23,6 +24,9 @@ def is_trading_time() -> bool:
 
 def fetch_latest_daily_bar(symbol: str):
     """获取最新一根日K线（走缓存，不直接调 API）。"""
+    if is_mock_symbol(symbol):
+        return get_mock_latest_bar(symbol)
+
     try:
         data = get_stock_kline(symbol, "daily")  # 复用 1 小时缓存
         if not data:
@@ -62,8 +66,11 @@ async def websocket_endpoint(websocket: WebSocket, symbol: str):
                     print(f"检测到客户端断开 ({symbol})，停止推送")
                     break
 
-            # 交易时间每 10s 刷新，非交易时间每 60s
-            sleep_sec = 10 if is_trading_time() else 60
+            # 交易时间每 10s 刷新，非交易时间每 60s；mock 每 2s 推 tick
+            if is_mock_symbol(symbol):
+                sleep_sec = 2
+            else:
+                sleep_sec = 10 if is_trading_time() else 60
             await asyncio.sleep(sleep_sec)
 
     except WebSocketDisconnect:
