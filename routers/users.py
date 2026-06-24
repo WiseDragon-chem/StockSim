@@ -14,13 +14,13 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     # 1. 检查用户名是否存在
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
-        raise HTTPException(status_code=400, detail="Username already registered")
+        raise HTTPException(status_code=400, detail="用户名已存在")
     
     # 2. 创建用户
     print(f"尝试加密的内容: {user.password}")
     print(f"内容类型: {type(user.password)}")
     print(f"内容长度: {len(user.password.encode('utf-8'))}")
-    hashed_password = auth.get_password_hash(user.password)
+    hashed_password = auth.get_password_hash(user.password[:72])
     print(11111111111111111111111111111111111111111111111111111111)
     new_user = models.User(
         username=user.username,
@@ -40,7 +40,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="用户名或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     

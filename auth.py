@@ -6,7 +6,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from database import get_db
-import models
+import models,bcrypt
+# bcrypt.__about__ = "bcrypt 2.2.1"
 
 # 配置
 SECRET_KEY = "YOUR_SUPER_SECRET_KEY" # 生产环境请用环境变量

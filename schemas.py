@@ -8,12 +8,6 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-class UserDisplay(UserBase):
-    id: int
-    cash_balance: float
-    class Config:
-        from_attributes = True # 兼容 SQLAlchemy 对象
-
 class TradeRequest(BaseModel):
     symbol: str
     price: float  # 模拟交易允许前端传入当前价格
@@ -25,6 +19,14 @@ class PositionDisplay(BaseModel):
     average_cost: float
     class Config:
         from_attributes = True
+
+
+class UserDisplay(UserBase):
+    id: int
+    cash_balance: float
+    positions: List[PositionDisplay] = [] 
+    class Config:
+        from_attributes = True # 兼容 SQLAlchemy 对象
 
 class OrderDisplay(BaseModel):
     id: int

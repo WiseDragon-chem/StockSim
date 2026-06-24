@@ -10,6 +10,9 @@ router = APIRouter()
 def buy_stock(trade: schemas.TradeRequest, 
               current_user: models.User = Depends(get_current_user), 
               db: Session = Depends(get_db)):
+
+    if trade.price <= 0 or trade.quantity <= 0:
+        raise HTTPException(status_code=400, detail="价格和数量必须大于0")
     
     # 1. 计算总花费
     total_cost = trade.price * trade.quantity

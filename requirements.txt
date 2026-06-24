@@ -1,3 +1,4 @@
+bcrypt==3.2.2
 fastapi
 uvicorn
 sqlalchemy
@@ -7,4 +8,4 @@ python-jose[cryptography]
 python-multipart
 akshare
 pandas
-bcryptor==3.2.2
+websockets

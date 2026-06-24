@@ -1,0 +1,301 @@
+:root {
+    --primary-color: #2962ff;    /* 金融蓝 */
+    --primary-hover: #0039cb;
+    --success-color: #00c853;    /* 涨/买入/成功 */
+    --danger-color: #d50000;     /* 跌/卖出/危险 */
+    --text-main: #333333;
+    --text-secondary: #666666;
+    --bg-body: #f5f7fa;
+    --bg-card: #ffffff;
+    --border-radius: 8px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+    font-weight: 600;
+}
+
+h1 { text-align: center; margin-bottom: 30px; color: #1a237e; }
+
+.main-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* 卡片通用样式 */
+.card {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 顶部登录栏 */
+.header-card {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* 左侧：图表区 */
+.chart-section {
+    flex: 2;
+    min-width: 600px;
+}
+
+#chart-container {
+    width: 100%; 
+    height: 450px; 
+    border: 1px solid #e0e0e0; 
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* 右侧：侧边栏 */
+.sidebar-section {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 周期切换按钮样式 */
+.btn-period {
+    flex: 1;
+    background-color: #f0f0f0;
+    color: #333;
+    font-size: 12px;
+    padding: 6px;
+}
+
+/* 激活状态：变成蓝色 */
+.btn-period.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* 底部：资产看板 */
+.dashboard-section {
+    width: 100%;
+    margin-top: 20px;
+}
+
+/* ====================
+   表单元素
+   ==================== */
+input[type="text"], 
+input[type="password"], 
+input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* ====================
+   按钮样式
+   ==================== */
+button {
+    cursor: pointer;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+/* 主按钮 (默认蓝色) */
+button {
+    background-color: var(--primary-color);
+    color: white;
+}
+button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+
+/* 绿色按钮 (买入/注册) */
+.btn-success, .btn-register {
+    background-color: var(--success-color);
+}
+.btn-success:hover, .btn-register:hover { background-color: #009624; }
+
+/* 红色按钮 (卖出/取消/登出) */
+.btn-danger, .btn-sell, .btn-logout, .btn-cancel {
+    background-color: var(--danger-color);
+}
+.btn-danger:hover { background-color: #b71c1c; }
+
+/* 次级按钮 (灰色) */
+.btn-secondary {
+    background-color: #e0e0e0;
+    color: #333;
+}
+.btn-secondary:hover { background-color: #d5d5d5; }
+
+/* ====================
+   数据展示
+   ==================== */
+.price-display {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.price-up { color: var(--success-color); font-weight: bold; }
+.price-down { color: var(--danger-color); font-weight: bold; }
+
+.data-row {
+    margin: 5px 0;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+th {
+    text-align: left;
+    background-color: #f1f3f5;
+    padding: 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+tr:hover { background-color: #fafafa; }
+
+/* ====================
+   WebSocket 状态
+   ==================== */
+.ws-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-left: 10px;
+}
+.ws-connected { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.ws-disconnected { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+/* ====================
+   弹窗
+   ==================== */
+#register-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+}
+.modal-content {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+.modal-actions button { width: 48%; }
+
+#guide-modal {
+    display: none; /* 默认隐藏，由 JS 控制显示 */
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.6); /* 深色半透明背景 */
+    backdrop-filter: blur(4px); /* 背景模糊效果 */
+    z-index: 2000; /* 保证在最上层 */
+}
+
+.guide-content {
+    width: 500px; /* 比注册框宽一点 */
+    max-width: 90%;
+}
+
+.guide-steps {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.step-num {
+    background-color: var(--primary-color);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0; /* 防止被压缩 */
+    margin-top: 2px;
+}
+
+.step-item strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-main);
+}
+
+.step-item p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
