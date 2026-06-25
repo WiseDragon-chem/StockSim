@@ -36,7 +36,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-服务默认监听 `192.168.7.3:7999`，首次启动会自动创建 `sql_app.db`。
+服务默认监听 `192.168.7.3:7999`，首次启动会自动创建 `data/sql_app.db`。
 
 如需修改地址 / 端口，编辑 `main.py` 底部的 `uvicorn.run()` 参数。
 
@@ -50,20 +50,25 @@ Swagger API 文档：`http://192.168.7.3:7999/docs`
 
 ```
 ├── main.py              # 应用入口，路由注册，静态文件挂载
-├── database.py          # SQLAlchemy 引擎与 Session 管理
-├── models.py            # ORM 模型：User / Position / Order
-├── schemas.py           # Pydantic 请求/响应模型
-├── auth.py              # 密码哈希、JWT 生成与校验
+├── core/                # 核心数据层
+│   ├── database.py      # SQLAlchemy 引擎与 Session 管理
+│   ├── models.py        # ORM 模型：User / Position / Order
+│   ├── schemas.py       # Pydantic 请求/响应模型
+│   └── auth.py          # 密码哈希、JWT 生成与校验
 ├── market_data.py       # AkShare 封装 + 文件缓存
-├── routers/
+├── mock_data.py         # 模拟数据生成器
+├── routers/             # API 路由
 │   ├── users.py         # 注册 / 登录 / 用户信息
 │   ├── market.py        # K线数据 / 股票名称
 │   ├── trade.py         # 买入 / 卖出
-│   └── ws.py            # WebSocket 实时行情推送
-├── static/
+│   ├── ws.py            # WebSocket 实时行情推送
+│   └── mock_admin.py    # 模拟公司管理
+├── mock_market/         # 模拟市场子系统（持久化 24/7 模拟公司）
+├── static/              # 前端
 │   ├── index.html       # 前端页面
-│   ├── app.js           # 前端逻辑
-│   └── style.css        # 样式
+│   ├── style.css        # 样式
+│   └── js/              # 前端 JS 模块（6 个文件）
+├── data/                # 数据库文件（已 gitignore）
 ├── cache/               # 行情缓存目录（已 gitignore）
 ├── test_cache.py        # 缓存功能测试脚本
 ├── requirements.txt

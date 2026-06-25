@@ -2,6 +2,13 @@
 
 我为你规划了详细的项目架构和开发文档，分为 **技术选型**、**项目结构**、**数据库设计**、**核心逻辑** 和 **开发步骤** 五个部分。
 
+> **📝 实际实现说明**：以下为原始设计文档。实际代码已做如下调整：
+> - 核心模块（database/models/schemas/auth）已移入 `core/` 包
+> - 空壳文件 `config.py` 和 `crud.py` 已删除
+> - 数据库文件移入 `data/` 目录
+> - 前端 JS 拆分为 `static/js/` 下的 6 个功能模块
+> - 新增 `mock_market/` 子系统（10 家持久化 24/7 模拟公司）
+
 ---
 
 ### 一、 技术选型与工具链
@@ -97,7 +104,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./data/sql_app.db"
 
 # check_same_thread=False 是 SQLite 在 FastAPI 多线程下的特殊配置
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
@@ -231,7 +238,7 @@ async function loadMarketData(symbol) {
 ```python
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from database import engine, Base
+from core.database import engine, Base
 from routers import users, market, trade
 
 # 创建数据库表
