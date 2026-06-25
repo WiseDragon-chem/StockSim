@@ -416,9 +416,10 @@ function connectWebSocket() {
     const symbol = document.getElementById('symbol').value;
     if (!symbol) { alert('请输入股票代码'); return; }
     
-    // 如果已经连接，先断开
+    // 如果已经连接，断开并返回（toggle off）
     if (wsConnected) {
         disconnectWebSocket();
+        return;
     }
     
     // 更新当前WebSocket连接的股票代码
@@ -429,15 +430,16 @@ function connectWebSocket() {
     
     try {
         ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
+        const sock = ws;  // 捕获当前连接引用，防止 onclose 关闭后覆盖新连接状态
+
+        sock.onopen = () => {
             wsConnected = true;
             updateWsStatus('connected');
             startHeartbeat();
         };
-        
-        ws.onmessage = (event) => {
-            if (event.data === 'ping') { ws.send('pong'); return; }
+
+        sock.onmessage = (event) => {
+            if (event.data === 'ping') { sock.send('pong'); return; }
             
             try {
                 const payload = JSON.parse(event.data);
@@ -449,35 +451,36 @@ function connectWebSocket() {
                     if (currentDisplaySymbol !== currentWsSymbol) {
                         return; // 如果不一致，忽略此消息
                     }
-                    
-                    if (currentPeriod === 'daily') {
-                        const klineData = payload.data;
-                        if (candlestickSeries) {
-                            candlestickSeries.update({
-                                time: klineData.time,
-                                open: klineData.open,
-                                high: klineData.high,
-                                low: klineData.low,
-                                close: klineData.close
-                            });
-                        }
-                    }
-                    
-                    const klineData = payload.data;
+
+                    // ── 绘图暂时注释（LightweightCharts update 待修复时间格式兼容）──
+                    // if (currentPeriod === 'daily') {
+                    //     const klineData = payload.data;
+                    //     if (candlestickSeries) {
+                    //         candlestickSeries.update({
+                    //             time: klineData.time,
+                    //             open: klineData.open,
+                    //             high: klineData.high,
+                    //             low: klineData.low,
+                    //             close: klineData.close
+                    //         });
+                    //     }
+                    // }
+
+                    const kd = payload.data;
 
                     // 更新右侧文本面板
-                    // 注意：因为后端返回的是K线数据，我们需要从 close 获取当前价
-                    const currentPrice = klineData.close;
-                    updatePriceUI(currentPrice, klineData.change); // 假设后端传回了 change
-                    
+                    const currentPrice = kd.close;
+                    // 后端没传 change，前端根据 (close-open)/open×100 计算涨跌幅
+                    const change = kd.open ? ((kd.close - kd.open) / kd.open * 100) : 0;
+                    updatePriceUI(currentPrice, change);
+
                     const volEl = document.getElementById('volume');
-                    if (volEl) volEl.innerText = klineData.volume;
-                    
+                    if (volEl) volEl.innerText = kd.volume || 0;
+
                     const timeEl = document.getElementById('update-time');
                     if (timeEl) {
-                        // 显示当前时间，证明数据在刷新
                         const now = new Date();
-                        timeEl.innerText = now.toLocaleTimeString(); 
+                        timeEl.innerText = now.toLocaleTimeString();
                     }
                 }
             } catch (e) {
@@ -485,23 +488,12 @@ function connectWebSocket() {
             }
         };
         
-        ws.onclose = (event) => {
+        sock.onclose = (event) => {
+            // 身份校验：只处理当前活跃连接的事件
+            if (sock !== ws) return;
             wsConnected = false;
             updateWsStatus('disconnected');
             stopHeartbeat();
-            // 非正常关闭则重连
-            if (event.code !== 1000) {
-                setTimeout(() => { 
-                    if(!wsConnected) {
-                        // 重连时使用当前输入的股票代码
-                        const currentDisplaySymbol = document.getElementById('symbol').value;
-                        if (currentDisplaySymbol) {
-                            currentWsSymbol = currentDisplaySymbol;
-                            connectWebSocket();
-                        }
-                    }
-                }, 5000);
-            }
         };
     } catch (e) { console.error('WebSocket Error', e); }
 }
@@ -515,7 +507,15 @@ window.addEventListener('beforeunload', () => {
 });
 
 function disconnectWebSocket() {
-    if (ws) { ws.close(); ws = null; }
+    if (ws) {
+        ws.onclose = null;   // 阻止旧回调异步触发（避免干扰新连接 / 自动重连）
+        ws.close(1000);
+        ws = null;
+    }
+    // 同步更新状态和 UI，不依赖异步 onclose
+    wsConnected = false;
+    stopHeartbeat();
+    updateWsStatus('disconnected');
 }
 
 function updateWsStatus(status) {
