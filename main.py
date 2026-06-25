@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from database import engine, Base
+from core.database import engine, Base
 from mock_market.database import init_mock_db
 from mock_market.engine import MockPriceEngine
 from routers import users, market, trade, ws, mock_admin

@@ -7,7 +7,7 @@ mock_market 独立数据库层
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-MOCK_DB_URL = "sqlite:///./mock_market.db"
+MOCK_DB_URL = "sqlite:///./data/mock_market.db"
 
 mock_engine = create_engine(
     MOCK_DB_URL,

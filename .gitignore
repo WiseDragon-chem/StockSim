@@ -24,7 +24,10 @@ env/
 
 # Project-specific
 cache/
+data/
 *.db
+*.db-shm
+*.db-wal
 sql_app*.db
 
 # OS
