@@ -6,116 +6,105 @@
     <title>StockSim - 股市模拟交易系统</title>
     <!-- 引入图表库 -->
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-    <!-- 引入新的样式文件 -->
+    <!-- 引入样式文件 -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>StockSim 模拟股市</h1>
-
-    <div class="main-wrapper">
-        
-        <!-- 1. 顶部栏：登录/用户信息 -->
-        <div class="card header-card" id="login-section">
-            <div id="login-form-container">
-                <!-- 未登录状态显示 -->
-                <div id="login-area" style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="username" placeholder="用户名" style="width: 150px; margin: 0;">
-                    <input type="password" id="password" placeholder="密码" style="width: 150px; margin: 0;">
-                    <button onclick="login()">登录</button>
-                    <button onclick="showRegister()" class="btn-secondary">注册</button>
-                    <span id="login-status" style="margin-left: 10px; font-size: 14px; color: #666;">未登录</span>
-                </div>
-                
-                <!-- 已登录状态显示 (默认隐藏) -->
-                <div id="logout-section" style="display: none; align-items: center;">
-                    <span style="font-size: 24px; margin-right: 10px;">👤</span>
-                    <span id="logged-in-user" style="font-weight: bold; font-size: 16px; margin-right: 20px;"></span>
-                    <button onclick="logout()" class="btn-logout">安全退出</button>
-                </div>
+    <!-- ==================== 顶栏 ==================== -->
+    <header class="top-bar">
+        <span class="top-bar-logo">📈 StockSim 模拟股市</span>
+        <div class="top-bar-right">
+            <!-- 未登录 -->
+            <button id="btn-login-modal" onclick="showLoginModal()">登录</button>
+            <!-- 已登录（默认隐藏） -->
+            <div id="top-bar-user-area" style="display:none;">
+                <span class="top-bar-assets-label">资产</span>
+                <span id="top-bar-assets">--</span>
+                <span id="top-bar-username"></span>
+                <button onclick="logout()" class="btn-logout">退出</button>
             </div>
         </div>
+    </header>
 
-        <!-- 2. 左侧：核心图表区 -->
-        <div class="chart-section">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <!-- ==================== 选项卡栏 ==================== -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="mock" onclick="switchTab('mock')">🏭 模拟公司</button>
+        <button class="tab-btn" data-tab="real" onclick="switchTab('real')">📊 实时A股</button>
+        <button class="tab-btn" data-tab="assets" onclick="switchTab('assets')">💰 我的资产</button>
+    </nav>
+
+    <!-- ==================== 交易区（模拟公司 & 实时A股共用） ==================== -->
+    <div id="content-trading" class="content-wrapper">
+        <!-- 左侧边栏（内容由 JS 根据选项卡动态切换） -->
+        <aside id="tab-sidebar" class="tab-sidebar">
+            <!-- 默认加载模拟公司列表 -->
+        </aside>
+
+        <!-- 右侧图表区 -->
+        <main id="chart-area" class="chart-area-main">
+            <div class="card chart-card">
+                <div class="chart-header">
                     <div>
                         <h3>K线走势</h3>
-                        <div id="stock-name-display" style="font-size: 14px; color: #666; margin-top: 5px;">
-                            <span id="current-symbol">600519</span>
-                            <span id="stock-name"> - 贵州茅台</span>
+                        <div id="stock-name-display">
+                            <span id="current-symbol">m00001</span>
+                            <span id="stock-name"> - 星辰科技</span>
                         </div>
                     </div>
                     <div>
-                         <span id="ws-status" class="ws-status ws-disconnected">● 实时断开</span>
+                        <span id="ws-status" class="ws-status ws-disconnected">● 实时断开</span>
                     </div>
                 </div>
                 <div id="chart-container"></div>
             </div>
-        </div>
 
-        <!-- 3. 右侧：操作面板 -->
-        <div class="sidebar-section">
-            <!-- 行情查询卡片 -->
-            <div class="card">
-                <h3>🔍 行情查询</h3>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="symbol" value="600519" placeholder="股票代码">
-                    <button onclick="loadChart()" style="width: 60px;">查询</button>
-                </div>
-                <button onclick="connectWebSocket()" id="ws-btn" class="btn-secondary" style="width: 100%; margin-top: 5px;">开启实时推送</button>
-
+            <!-- 价格信息 & 周期 & 推送 -->
+            <div class="price-info-bar">
                 <div class="price-display">
-                    <div>
-                        <div class="data-row">当前价格</div>
-                        <div id="current-price" style="font-size: 1.2em; font-weight: bold;">--</div>
+                    <div class="price-item">
+                        <span class="data-row">当前价格</span>
+                        <span id="current-price">--</span>
                     </div>
-                    <div style="text-align: right;">
-                        <div class="data-row">涨跌幅</div>
-                        <div id="price-change">--%</div>
+                    <div class="price-item">
+                        <span class="data-row">涨跌幅</span>
+                        <span id="price-change">--%</span>
                     </div>
                 </div>
-                <div class="data-row">成交量: <span id="volume">--</span></div>
-                <div class="data-row">更新于: <span id="update-time">--:--:--</span></div>
-            </div>
-
-            <!-- 模拟公司快捷选择 -->
-            <div class="card" id="mock-company-card">
-                <h3 style="margin: 0 0 8px 0;">🏭 模拟公司</h3>
-                <div id="mock-company-list" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                    <span style="font-size:12px;color:#999;">加载中...</span>
+                <div class="info-meta">
+                    <span class="data-row">成交量: <span id="volume">--</span></span>
+                    <span class="data-row">更新于: <span id="update-time">--:--:--</span></span>
+                </div>
+                <div class="info-controls">
+                    <div class="period-selector">
+                        <button id="btn-daily" class="btn-period active" onclick="switchPeriod('daily')">日K</button>
+                        <button id="btn-monthly" class="btn-period" onclick="switchPeriod('monthly')">月K</button>
+                    </div>
+                    <button id="ws-btn" class="btn-secondary" onclick="connectWebSocket()">开启实时推送</button>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <!-- 交易操作卡片 -->
-            <div class="card">
-                <h3>💰 模拟交易</h3>
-                <label style="font-size: 12px; color: #666;">交易数量 (股)</label>
-                <input type="number" id="qty" value="100" placeholder="100">
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button onclick="buy()" class="btn-success" style="flex: 1;">买入 (Buy)</button>
-                    <button onclick="sell()" class="btn-sell" style="flex: 1;">卖出 (Sell)</button>
-                </div>
-                <p id="trade-msg" style="font-size: 12px; text-align: center; margin-top: 5px; height: 20px;"></p>
-            </div>
-
-            <div class="period-selector" style="margin-top: 10px; display: flex; gap: 5px;">
-                <!-- 两个按钮，默认日K是激活状态 -->
-                 <button id="btn-daily" onclick="switchPeriod('daily')" class="btn-period active">日K</button>
-                 <button id="btn-monthly" onclick="switchPeriod('monthly')" class="btn-period">月K</button>
-                </div>
+    <!-- ==================== 交易栏（底部） ==================== -->
+    <div id="trade-bar" class="trade-bar">
+        <div class="trade-bar-inner">
+            <input type="text" id="symbol" value="m00001" placeholder="股票代码">
+            <input type="number" id="qty" value="100" placeholder="数量">
+            <button onclick="buy()" class="btn-success">买入</button>
+            <button onclick="sell()" class="btn-sell">卖出</button>
+            <span id="trade-msg"></span>
         </div>
+    </div>
 
-        <!-- 4. 底部：资产看板 -->
-        <div class="dashboard-section card" id="dashboard" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                <h2 style="margin: 0;">我的资产组合</h2>
-                <div style="font-size: 1.1em;">
-                    可用现金: <strong id="cash-display" style="font-size: 1.4em; color: var(--success-color);">0.00</strong> 元
-                </div>
+    <!-- ==================== 我的资产区（默认隐藏） ==================== -->
+    <div id="content-assets" style="display:none;">
+        <div id="dashboard" class="card assets-card">
+            <div class="dashboard-header">
+                <h2>我的资产组合</h2>
+                <div>可用现金: <strong id="cash-display">0.00</strong> 元</div>
             </div>
-            
+
             <table class="table-modern">
                 <thead>
                     <tr>
@@ -130,68 +119,77 @@
                 </tbody>
             </table>
         </div>
-
+        <p id="assets-login-hint" style="text-align:center;color:var(--text-secondary);padding:40px;">
+            🔒 请先登录后查看资产
+        </p>
     </div>
 
-    <!-- 注册弹窗 -->
-    <div id="register-modal">
-        <div class="modal-content">
-            <h3 style="text-align: center;">注册新用户</h3>
-            <input type="text" id="register-username" placeholder="设置用户名">
-            <input type="password" id="register-password" placeholder="设置密码">
-            <input type="password" id="confirm-password" placeholder="确认密码">
-            
-            <div class="modal-actions">
-                <button onclick="register()" class="btn-success">立即注册</button>
-                <button onclick="hideRegister()" class="btn-secondary">取消</button>
+    <!-- ==================== 登录/注册弹窗 ==================== -->
+    <div id="auth-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content auth-modal-content">
+            <button class="modal-close-btn" onclick="hideAuthModal()">&times;</button>
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-modal="login">登录</button>
+                <button class="modal-tab" data-modal="register">注册</button>
             </div>
-            <p id="register-status" style="text-align: center; font-size: 12px; margin-top: 10px;"></p>
+            <!-- 登录表单 -->
+            <div id="modal-login" class="modal-form">
+                <input type="text" id="modal-username" placeholder="用户名">
+                <input type="password" id="modal-password" placeholder="密码">
+                <button onclick="login()" class="btn-success" style="width:100%;">登录</button>
+                <p id="login-status"></p>
+            </div>
+            <!-- 注册表单（默认隐藏） -->
+            <div id="modal-register" class="modal-form" style="display:none;">
+                <input type="text" id="register-username" placeholder="设置用户名">
+                <input type="password" id="register-password" placeholder="设置密码">
+                <input type="password" id="confirm-password" placeholder="确认密码">
+                <button onclick="register()" class="btn-success" style="width:100%;">立即注册</button>
+                <p id="register-status"></p>
+            </div>
         </div>
     </div>
 
-    <!-- 
-         新增：用户使用指南弹窗
-         -->
+    <!-- ==================== 使用指南弹窗 ==================== -->
     <div id="guide-modal">
         <div class="modal-content guide-content">
-            <h2 style="color: var(--primary-color); text-align: center;">欢迎来到 StockSim</h2>
-            <p style="text-align: center; color: #666;">这是模拟股市交易的简易平台，未来会作为小鱼干交易所集成在raricy.com上</p>
-            
+            <h2 style="color: var(--primary); text-align: center;">欢迎来到 StockSim</h2>
+            <p style="text-align: center; color: #666;">这是模拟股市交易的简易平台</p>
+
             <div class="guide-steps">
                 <div class="step-item">
                     <span class="step-num">1</span>
                     <div>
                         <strong>注册与登录</strong>
-                        <p>点击右上角的“注册”创建账号，并登录系统。初始资金为 100,000 元。</p>
+                        <p>点击右上角的"登录"按钮创建账号并登录。初始资金为 100,000 元。</p>
                     </div>
                 </div>
                 <div class="step-item">
                     <span class="step-num">2</span>
                     <div>
                         <strong>获取行情</strong>
-                        <p>在右侧输入股票代码[如 600519（茅台）]，点击“查询”或“加载K线”获取最新价格。</p>
-                        <p>提示：“实时显示”功能在非开盘时间无法正常使用。</p>
-                        <p>注意：不要过快连续按“加载”，否则IP容易被同花顺封禁</p>
+                        <p>在"模拟公司"选项卡选择公司查看K线，或在"实时A股"选项卡输入真实股票代码查询。</p>
+                        <p>提示：不要过快连续查询，否则IP容易被同花顺封禁。</p>
                     </div>
                 </div>
                 <div class="step-item">
                     <span class="step-num">3</span>
                     <div>
                         <strong>模拟交易</strong>
-                        <p>输入交易数量，点击“买入”或“卖出”。必须先获取价格才能交易。</p>
+                        <p>在底部交易栏输入数量，点击"买入"或"卖出"。必须先加载K线获取价格才能交易。</p>
                     </div>
                 </div>
                 <div class="step-item">
                     <span class="step-num">4</span>
                     <div>
                         <strong>查看资产</strong>
-                        <p>页面下方会显示您的持仓列表和现金余额，交易后自动刷新。</p>
+                        <p>点击"我的资产"选项卡查看持仓列表和现金余额，交易后自动刷新。</p>
                     </div>
                 </div>
             </div>
 
             <div class="modal-actions" style="justify-content: center; margin-top: 20px;">
-                <button onclick="closeGuide()" class="btn-success" style="width: 200px; padding: 12px;">OK</button>
+                <button onclick="closeGuide()" class="btn-success" style="width: 200px; padding: 12px;">开始使用</button>
             </div>
         </div>
     </div>

@@ -1,6 +1,69 @@
 // ============================================================
-// auth.js — 认证：登录 / 注册 / 登出 / 自动登录
+// auth.js — 认证：登录模态框 / 注册 / 登出 / 自动登录
 // ============================================================
+
+// ==================== 模态框控制 ====================
+
+function showLoginModal() {
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // 默认显示登录选项卡
+        switchAuthTab('login');
+        // 清空表单和状态
+        document.getElementById('modal-username').value = '';
+        document.getElementById('modal-password').value = '';
+        const loginStatus = document.getElementById('login-status');
+        if (loginStatus) loginStatus.innerText = '';
+        const registerStatus = document.getElementById('register-status');
+        if (registerStatus) registerStatus.innerText = '';
+    }
+}
+
+function hideAuthModal() {
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function switchAuthTab(tabName) {
+    document.querySelectorAll('#auth-modal .modal-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.modal === tabName);
+    });
+    const loginForm = document.getElementById('modal-login');
+    const registerForm = document.getElementById('modal-register');
+    if (tabName === 'login') {
+        if (loginForm) loginForm.style.display = 'block';
+        if (registerForm) registerForm.style.display = 'none';
+    } else {
+        if (loginForm) loginForm.style.display = 'none';
+        if (registerForm) registerForm.style.display = 'block';
+    }
+}
+
+// 为模态框选项卡按钮绑定事件
+document.addEventListener('DOMContentLoaded', () => {
+    // 使用事件委托处理模态框选项卡点击
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) {
+        authModal.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('.modal-tab');
+            if (tabBtn) {
+                switchAuthTab(tabBtn.dataset.modal);
+            }
+        });
+
+        // 点击遮罩层关闭
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                hideAuthModal();
+            }
+        });
+    }
+});
+
+// ==================== 自动登录 ====================
 
 async function autoLogin() {
     const savedToken = localStorage.getItem('stockSimToken');
@@ -13,16 +76,16 @@ async function autoLogin() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                updateLoginUI(true, savedUsername);
+                const user = await res.json();
+                updateLoginUI(true, savedUsername, user.cash_balance);
                 refreshAccount();
+                updateAssetsLoginHint();
                 console.log('自动登录成功');
             } else {
-                // Token 无效，执行登出清理
                 logout();
             }
         } catch (e) {
             console.error('自动登录网络错误:', e);
-            // 网络错误不一定代表token失效，但为了安全可以转为未登录态
             updateLoginUI(false);
         }
     } else {
@@ -30,14 +93,20 @@ async function autoLogin() {
     }
 }
 
+// ==================== 登录 ====================
+
 async function login() {
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
+    const usernameInput = document.getElementById('modal-username');
+    const passwordInput = document.getElementById('modal-password');
+    const statusEl = document.getElementById('login-status');
 
-    const username = usernameInput.value;
-    const password = passwordInput.value;
+    const username = usernameInput ? usernameInput.value : '';
+    const password = passwordInput ? passwordInput.value : '';
 
-    if (!username || !password) { alert("请输入用户名和密码"); return; }
+    if (!username || !password) {
+        if (statusEl) { statusEl.innerText = '请输入用户名和密码'; statusEl.style.color = 'red'; }
+        return;
+    }
 
     const formData = new FormData();
     formData.append('username', username);
@@ -53,19 +122,30 @@ async function login() {
             localStorage.setItem('stockSimToken', token);
             localStorage.setItem('stockSimUsername', username);
 
-            updateLoginUI(true, username);
-            refreshAccount();
+            // 获取用户资产信息
+            const userRes = await fetch('/api/users/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const user = await userRes.json();
+
+            updateLoginUI(true, username, user.cash_balance);
+            refreshAccount();  // 刷新持仓列表
+            updateAssetsLoginHint();
+            hideAuthModal();
 
             // 清空密码框
             passwordInput.value = '';
+            if (statusEl) statusEl.innerText = '';
         } else {
-            alert("登录失败：用户名或密码错误");
+            if (statusEl) { statusEl.innerText = '登录失败：用户名或密码错误'; statusEl.style.color = 'red'; }
         }
     } catch (e) {
         console.error(e);
-        alert("连接服务器失败");
+        if (statusEl) { statusEl.innerText = '连接服务器失败'; statusEl.style.color = 'red'; }
     }
 }
+
+// ==================== 登出 ====================
 
 function logout() {
     localStorage.removeItem('stockSimToken');
@@ -74,49 +154,63 @@ function logout() {
 
     updateLoginUI(false);
 
-    // 隐藏资产看板
-    const dashboard = document.getElementById('dashboard');
-    if (dashboard) dashboard.style.display = 'none';
-
+    // 如果 WebSocket 已连接则断开
     if (wsConnected) disconnectWebSocket();
+
+    // 更新资产选项卡提示
+    updateAssetsLoginHint();
+
+    // 清空持仓列表
+    const tbody = document.getElementById('position-list');
+    if (tbody) tbody.innerHTML = '';
+    const cashDisplay = document.getElementById('cash-display');
+    if (cashDisplay) cashDisplay.innerText = '0.00';
 }
 
-/**
- * 修复后的 UI 更新函数
- * 适配新的 HTML 结构 (login-area 和 logout-section)
- */
-function updateLoginUI(isLoggedIn, username = '') {
-    const loginArea = document.getElementById('login-area');
-    const logoutSection = document.getElementById('logout-section');
-    const loggedInUser = document.getElementById('logged-in-user');
+// ==================== UI 更新 ====================
 
-    // 安全检查：防止页面元素找不到导致报错
-    if (!loginArea || !logoutSection) return;
+/**
+ * 更新顶栏登录状态
+ * @param {boolean} isLoggedIn - 是否已登录
+ * @param {string} username - 用户名
+ * @param {number} cashBalance - 现金余额（可选）
+ */
+function updateLoginUI(isLoggedIn, username = '', cashBalance = null) {
+    const btnLogin = document.getElementById('btn-login-modal');
+    const userArea = document.getElementById('top-bar-user-area');
+    const usernameEl = document.getElementById('top-bar-username');
+    const assetsEl = document.getElementById('top-bar-assets');
+
+    if (!btnLogin || !userArea) return;
 
     if (isLoggedIn) {
-        // 登录状态：隐藏输入框，显示用户信息
-        loginArea.style.display = 'none';
-        logoutSection.style.display = 'flex'; // Flex布局保持对齐
-        if (loggedInUser) loggedInUser.innerText = username;
+        btnLogin.style.display = 'none';
+        userArea.style.display = 'flex';
+        if (usernameEl) usernameEl.innerText = username;
+        if (assetsEl && cashBalance !== null) {
+            assetsEl.innerText = '¥' + Number(cashBalance).toFixed(2);
+        }
     } else {
-        // 未登录状态：显示输入框，隐藏用户信息
-        loginArea.style.display = 'flex';
-        logoutSection.style.display = 'none';
-        if (loggedInUser) loggedInUser.innerText = '';
+        btnLogin.style.display = 'inline-block';
+        userArea.style.display = 'none';
+        if (usernameEl) usernameEl.innerText = '';
+        if (assetsEl) assetsEl.innerText = '--';
     }
 }
 
+// ==================== 注册 ====================
+
 function showRegister() {
-    const modal = document.getElementById('register-modal');
-    if(modal) {
-        modal.style.display = 'block';
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        switchAuthTab('register');
         document.getElementById('register-status').innerText = '';
     }
 }
 
 function hideRegister() {
-    const modal = document.getElementById('register-modal');
-    if(modal) modal.style.display = 'none';
+    switchAuthTab('login');
 }
 
 async function register() {
@@ -139,11 +233,12 @@ async function register() {
             statusBox.innerText = '注册成功！请登录';
             statusBox.style.color = 'green';
 
-            // 自动填充登录框
-            const loginUser = document.getElementById('username');
-            if(loginUser) loginUser.value = username;
+            // 自动填充登录表单
+            const modalUser = document.getElementById('modal-username');
+            if (modalUser) modalUser.value = username;
 
-            setTimeout(hideRegister, 2000);
+            // 2秒后切换到登录选项卡
+            setTimeout(() => switchAuthTab('login'), 1800);
         } else {
             const err = await res.json();
             statusBox.innerText = '注册失败: ' + (err.detail || '未知错误');
@@ -152,5 +247,6 @@ async function register() {
     } catch (e) {
         console.error(e);
         statusBox.innerText = '网络错误';
+        statusBox.style.color = 'red';
     }
 }

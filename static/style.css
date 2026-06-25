@@ -1,279 +1,682 @@
+/* ============================================================
+   StockSim — 样式表（蓝绿色系 / 白底 / 等线字体）
+   ============================================================ */
+
 :root {
-    --primary-color: #2962ff;    /* 金融蓝 */
-    --primary-hover: #0039cb;
-    --success-color: #00c853;    /* 涨/买入/成功 */
-    --danger-color: #d50000;     /* 跌/卖出/危险 */
-    --text-main: #333333;
-    --text-secondary: #666666;
-    --bg-body: #f5f7fa;
-    --bg-card: #ffffff;
-    --border-radius: 8px;
-    --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    --primary: #0D9488;
+    --primary-hover: #0F766E;
+    --primary-light: #CCFBF1;
+    --primary-bg: #F0FDFA;
+    --success: #059669;
+    --success-hover: #047857;
+    --danger: #DC2626;
+    --danger-hover: #B91C1C;
+    --text: #1F2937;
+    --text-secondary: #6B7280;
+    --bg: #F8FAFB;
+    --card-bg: #FFFFFF;
+    --border: #E5E7EB;
+    --border-light: #F3F4F6;
+    --radius: 8px;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06);
+    --font: 'DengXian', '等线', 'Microsoft YaHei', '微软雅黑', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--bg-body);
-    color: var(--text-main);
-    margin: 0;
-    padding: 20px;
-    line-height: 1.6;
-}
-
-h1, h2, h3 {
-    margin-top: 0;
-    font-weight: 600;
-}
-
-h1 { text-align: center; margin-bottom: 30px; color: #1a237e; }
-
-.main-wrapper {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-
-/* 卡片通用样式 */
-.card {
-    background-color: var(--bg-card);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 20px;
+/* ==================== 基础重置 ==================== */
+*, *::before, *::after {
     box-sizing: border-box;
 }
 
-/* 顶部登录栏 */
-.header-card {
-    width: 100%;
+body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* ==================== 顶栏 ==================== */
+.top-bar {
+    height: 48px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 0 24px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-/* 左侧：图表区 */
-.chart-section {
-    flex: 2;
-    min-width: 600px;
+.top-bar-logo {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.5px;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.top-bar-assets-label {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+#top-bar-assets {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 15px;
+}
+
+#top-bar-username {
+    font-weight: 600;
+    color: var(--text);
+}
+
+#top-bar-user-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==================== 选项卡栏 ==================== */
+.tab-bar {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: var(--card-bg);
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 48px;
+    z-index: 99;
+}
+
+.tab-btn {
+    padding: 12px 36px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 0;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+/* ==================== 内容布局 ==================== */
+.content-wrapper {
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ==================== 左侧边栏 ==================== */
+.tab-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tab-sidebar .card {
+    padding: 16px;
+}
+
+.tab-sidebar h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+/* 模拟公司列表项 */
+.company-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: 4px;
+}
+
+.company-list-item:hover {
+    background: var(--primary-bg);
+    border-color: var(--primary);
+}
+
+.company-list-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    font-weight: 600;
+}
+
+.company-list-item .company-code {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', monospace;
+    min-width: 52px;
+}
+
+.company-list-item .company-name {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.company-list-item .company-sigma {
+    font-size: 10px;
+    color: var(--text-secondary);
+    background: var(--border-light);
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+/* 股票查询（实时A股侧边栏） */
+.stock-lookup-input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    transition: border-color 0.2s;
+}
+
+.stock-lookup-input:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+/* ==================== 图表区 ==================== */
+.chart-area-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chart-card {
+    padding: 20px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.chart-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+#stock-name-display {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+#current-symbol {
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Consolas', 'Courier New', monospace;
 }
 
 #chart-container {
-    width: 100%; 
-    height: 450px; 
-    border: 1px solid #e0e0e0; 
+    width: 100%;
+    height: 450px;
+    border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
 }
 
-/* 右侧：侧边栏 */
-.sidebar-section {
-    flex: 1;
-    min-width: 300px;
+/* ==================== 价格信息栏 ==================== */
+.price-info-bar {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.price-display {
+    display: flex;
+    gap: 24px;
+}
+
+.price-item {
     display: flex;
     flex-direction: column;
-    gap: 20px;
 }
 
-/* 周期切换按钮样式 */
-.btn-period {
-    flex: 1;
-    background-color: #f0f0f0;
-    color: #333;
+.price-item .data-row {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+#current-price {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+#price-change {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.info-meta {
+    display: flex;
+    gap: 16px;
     font-size: 12px;
-    padding: 6px;
+    color: var(--text-secondary);
 }
 
-/* 激活状态：变成蓝色 */
+.info-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.period-selector {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.btn-period {
+    padding: 6px 14px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: none;
+    font-size: 12px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 0;
+    margin: 0;
+}
+
 .btn-period.active {
-    background-color: var(--primary-color);
+    background: var(--primary);
     color: white;
 }
 
-/* 底部：资产看板 */
-.dashboard-section {
-    width: 100%;
-    margin-top: 20px;
+.btn-period:hover:not(.active) {
+    background: var(--border-light);
 }
 
-/* ====================
-   表单元素
-   ==================== */
-input[type="text"], 
-input[type="password"], 
+/* ==================== 交易栏 ==================== */
+.trade-bar {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+}
+
+.trade-bar-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.trade-bar-inner input[type="text"] {
+    width: 130px;
+}
+
+.trade-bar-inner input[type="number"] {
+    width: 100px;
+}
+
+#trade-msg {
+    font-size: 13px;
+    min-width: 200px;
+}
+
+/* ==================== 资产区 ==================== */
+#content-assets {
+    max-width: 1400px;
+    margin: 16px auto;
+    padding: 0 24px;
+}
+
+.assets-card {
+    padding: 24px;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+.dashboard-header h2 {
+    font-size: 18px;
+}
+
+#cash-display {
+    font-size: 1.3em;
+    color: var(--primary);
+}
+
+/* ==================== 卡片 ==================== */
+.card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+/* ==================== 表单元素 ==================== */
+input[type="text"],
+input[type="password"],
 input[type="number"] {
-    width: 100%;
-    padding: 10px 12px;
-    margin: 8px 0;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-sizing: border-box;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     font-size: 14px;
-    transition: border-color 0.3s;
+    font-family: var(--font);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
 }
 
 input:focus {
-    border-color: var(--primary-color);
+    border-color: var(--primary);
     outline: none;
+    box-shadow: 0 0 0 2px var(--primary-light);
 }
 
-/* ====================
-   按钮样式
-   ==================== */
+/* ==================== 按钮 ==================== */
 button {
     cursor: pointer;
     border: none;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
     font-weight: 500;
-    transition: all 0.2s ease;
-    margin-right: 5px;
-    margin-bottom: 5px;
-}
-
-/* 主按钮 (默认蓝色) */
-button {
-    background-color: var(--primary-color);
+    font-family: var(--font);
+    transition: all 0.15s ease;
+    background-color: var(--primary);
     color: white;
 }
-button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
 
-/* 绿色按钮 (买入/注册) */
-.btn-success, .btn-register {
-    background-color: var(--success-color);
+button:hover {
+    background-color: var(--primary-hover);
 }
-.btn-success:hover, .btn-register:hover { background-color: #009624; }
 
-/* 红色按钮 (卖出/取消/登出) */
-.btn-danger, .btn-sell, .btn-logout, .btn-cancel {
-    background-color: var(--danger-color);
+.btn-success {
+    background-color: var(--success);
 }
-.btn-danger:hover { background-color: #b71c1c; }
 
-/* 次级按钮 (灰色) */
+.btn-success:hover {
+    background-color: var(--success-hover);
+}
+
+.btn-sell, .btn-logout {
+    background-color: var(--danger);
+}
+
+.btn-sell:hover, .btn-logout:hover {
+    background-color: var(--danger-hover);
+}
+
 .btn-secondary {
-    background-color: #e0e0e0;
-    color: #333;
-}
-.btn-secondary:hover { background-color: #d5d5d5; }
-
-/* ====================
-   数据展示
-   ==================== */
-.price-display {
-    display: flex;
-    justify-content: space-between;
-    margin: 10px 0;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
+    background-color: var(--border);
+    color: var(--text);
 }
 
-.price-up { color: var(--danger-color); font-weight: bold; }
-.price-down { color: var(--success-color); font-weight: bold; }
+.btn-secondary:hover {
+    background-color: #D1D5DB;
+}
 
+/* ==================== 数据展示 ==================== */
 .data-row {
-    margin: 5px 0;
-    font-size: 0.9em;
+    font-size: 0.85em;
     color: var(--text-secondary);
 }
 
-/* 表格 */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+.price-up {
+    color: var(--danger);
+    font-weight: bold;
 }
-th {
-    text-align: left;
-    background-color: #f1f3f5;
-    padding: 12px;
-    font-size: 14px;
-    color: var(--text-secondary);
-}
-td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-}
-tr:hover { background-color: #fafafa; }
 
-/* ====================
-   WebSocket 状态
-   ==================== */
+.price-down {
+    color: var(--success);
+    font-weight: bold;
+}
+
+/* ==================== WebSocket 状态 ==================== */
 .ws-status {
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 4px 10px;
     border-radius: 12px;
-    margin-left: 10px;
 }
-.ws-connected { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-.ws-disconnected { background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-/* ====================
-   弹窗
-   ==================== */
-#register-modal {
+.ws-connected {
+    background-color: #ECFDF5;
+    color: #059669;
+    border: 1px solid #A7F3D0;
+}
+
+.ws-disconnected {
+    background-color: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+/* ==================== 表格 ==================== */
+.table-modern {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+.table-modern th {
+    text-align: left;
+    background: var(--border-light);
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.table-modern td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 14px;
+}
+
+.table-modern tr:hover {
+    background: var(--primary-bg);
+}
+
+/* ==================== 弹窗 ==================== */
+.modal-overlay {
     display: none;
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.5);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(2px);
     z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
-.modal-content {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    width: 350px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-.modal-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-}
-.modal-actions button { width: 48%; }
 
+/* JS 通过 display:flex 显示弹窗 */
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 28px;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.auth-modal-content {
+    width: 380px;
+    max-width: 90vw;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 22px;
+    padding: 2px 8px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: var(--text);
+    background: var(--border-light);
+}
+
+/* 弹窗内选项卡 */
+.modal-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.modal-tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 500;
+    font-family: var(--font);
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 0;
+}
+
+.modal-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.modal-tab:hover {
+    color: var(--primary);
+}
+
+/* 弹窗内表单 */
+.modal-form input {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.modal-form p {
+    text-align: center;
+    font-size: 12px;
+    margin-top: 8px;
+    min-height: 18px;
+}
+
+/* ==================== 指南弹窗 ==================== */
 #guide-modal {
-    display: none; /* 默认隐藏，由 JS 控制显示 */
+    display: none;
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.6); /* 深色半透明背景 */
-    backdrop-filter: blur(4px); /* 背景模糊效果 */
-    z-index: 2000; /* 保证在最上层 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
 }
 
 .guide-content {
-    width: 500px; /* 比注册框宽一点 */
-    max-width: 90%;
+    width: 500px;
+    max-width: 90vw;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .guide-steps {
-    margin-top: 20px;
+    margin-top: 16px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 
 .step-item {
     display: flex;
     align-items: flex-start;
-    gap: 15px;
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-    border-left: 4px solid var(--primary-color);
+    gap: 14px;
+    background: var(--border-light);
+    padding: 12px;
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary);
 }
 
 .step-num {
-    background-color: var(--primary-color);
+    background: var(--primary);
     color: white;
     width: 24px;
     height: 24px;
@@ -281,21 +684,83 @@ tr:hover { background-color: #fafafa; }
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-    flex-shrink: 0; /* 防止被压缩 */
-    margin-top: 2px;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 
 .step-item strong {
     display: block;
-    margin-bottom: 4px;
-    color: var(--text-main);
+    margin-bottom: 2px;
+    color: var(--text);
+    font-size: 14px;
 }
 
 .step-item p {
     margin: 0;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 900px) {
+    .content-wrapper {
+        flex-direction: column;
+        padding: 12px 16px;
+    }
+
+    .tab-sidebar {
+        width: 100%;
+    }
+
+    .price-info-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .info-controls {
+        margin-left: 0;
+    }
+
+    .trade-bar-inner {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 600px) {
+    .top-bar {
+        padding: 0 12px;
+    }
+
+    .tab-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+
+    #chart-container {
+        height: 300px;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .content-wrapper {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .trade-bar {
+        padding: 8px 12px;
+    }
 }
