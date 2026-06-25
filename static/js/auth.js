@@ -160,11 +160,13 @@ function logout() {
     // 更新资产选项卡提示
     updateAssetsLoginHint();
 
-    // 清空持仓列表
+    // 清空持仓列表和资产显示
     const tbody = document.getElementById('position-list');
     if (tbody) tbody.innerHTML = '';
     const cashDisplay = document.getElementById('cash-display');
     if (cashDisplay) cashDisplay.innerText = '0.00';
+    const totalDisplay = document.getElementById('total-assets-display');
+    if (totalDisplay) totalDisplay.innerText = '0.00';
 }
 
 // ==================== UI 更新 ====================
@@ -173,13 +175,14 @@ function logout() {
  * 更新顶栏登录状态
  * @param {boolean} isLoggedIn - 是否已登录
  * @param {string} username - 用户名
- * @param {number} cashBalance - 现金余额（可选）
+ * @param {number} cashBalance - 现金余额（登录瞬间临时显示，随后 refreshAccount 会覆盖为总资产）
  */
 function updateLoginUI(isLoggedIn, username = '', cashBalance = null) {
     const btnLogin = document.getElementById('btn-login-modal');
     const userArea = document.getElementById('top-bar-user-area');
     const usernameEl = document.getElementById('top-bar-username');
     const assetsEl = document.getElementById('top-bar-assets');
+    const cashEl = document.getElementById('top-bar-cash');
 
     if (!btnLogin || !userArea) return;
 
@@ -190,11 +193,15 @@ function updateLoginUI(isLoggedIn, username = '', cashBalance = null) {
         if (assetsEl && cashBalance !== null) {
             assetsEl.innerText = '¥' + Number(cashBalance).toFixed(2);
         }
+        if (cashEl && cashBalance !== null) {
+            cashEl.innerText = '现金 ¥' + Number(cashBalance).toFixed(2);
+        }
     } else {
         btnLogin.style.display = 'inline-block';
         userArea.style.display = 'none';
         if (usernameEl) usernameEl.innerText = '';
         if (assetsEl) assetsEl.innerText = '--';
+        if (cashEl) cashEl.innerText = '';
     }
 }
 

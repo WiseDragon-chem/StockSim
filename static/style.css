@@ -356,9 +356,9 @@ h1, h2, h3 {
 /* ==================== 交易栏 ==================== */
 .trade-bar {
     background: var(--card-bg);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
+    border-top: 2px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    padding: 14px 24px;
 }
 
 .trade-bar-inner {
@@ -367,6 +367,34 @@ h1, h2, h3 {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.trade-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: fit-content;
+}
+
+.trade-input-symbol {
+    width: 140px !important;
+    font-size: 16px !important;
+    padding: 10px 12px !important;
+    font-weight: 600;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+}
+
+.trade-input-qty {
+    width: 110px !important;
+    font-size: 16px !important;
+    padding: 10px 12px !important;
+}
+
+.trade-btn {
+    font-size: 16px !important;
+    padding: 10px 28px !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px;
 }
 
 .trade-bar-inner input[type="text"] {
@@ -378,8 +406,10 @@ h1, h2, h3 {
 }
 
 #trade-msg {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
     min-width: 200px;
+    margin-left: 8px;
 }
 
 /* ==================== 资产区 ==================== */
@@ -391,24 +421,32 @@ h1, h2, h3 {
 
 .assets-card {
     padding: 24px;
+    overflow-x: auto;
 }
 
 .dashboard-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     border-bottom: 1px solid var(--border);
     padding-bottom: 12px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .dashboard-header h2 {
     font-size: 18px;
 }
 
-#cash-display {
+#total-assets-display {
     font-size: 1.3em;
     color: var(--primary);
+}
+
+#cash-display {
+    color: var(--text);
+}
 }
 
 /* ==================== 卡片 ==================== */

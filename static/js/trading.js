@@ -45,6 +45,11 @@ async function trade(type) {
         if (res.ok) {
             msgBox.innerText = `${type === 'buy' ? '买入' : '卖出'}成功！余额: ${data.new_balance.toFixed(2)}`;
             msgBox.style.color = 'green';
+
+            // 立即更新顶栏现金（总资产由 refreshAccount 精确计算后更新）
+            const topCash = document.getElementById('top-bar-cash');
+            if (topCash) topCash.innerText = '现金 ¥' + data.new_balance.toFixed(2);
+
             refreshAccount();
         } else {
             msgBox.innerText = "交易失败: " + (data.detail || "未知错误");

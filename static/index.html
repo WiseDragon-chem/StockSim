@@ -19,8 +19,9 @@
             <button id="btn-login-modal" onclick="showLoginModal()">登录</button>
             <!-- 已登录（默认隐藏） -->
             <div id="top-bar-user-area" style="display:none;">
-                <span class="top-bar-assets-label">资产</span>
+                <span class="top-bar-assets-label">总资产</span>
                 <span id="top-bar-assets">--</span>
+                <span id="top-bar-cash" style="font-size:12px;color:var(--text-secondary);margin:0 12px 0 4px;"></span>
                 <span id="top-bar-username"></span>
                 <button onclick="logout()" class="btn-logout">退出</button>
             </div>
@@ -89,10 +90,12 @@
     <!-- ==================== 交易栏（底部） ==================== -->
     <div id="trade-bar" class="trade-bar">
         <div class="trade-bar-inner">
-            <input type="text" id="symbol" value="m00001" placeholder="股票代码">
-            <input type="number" id="qty" value="100" placeholder="数量">
-            <button onclick="buy()" class="btn-success">买入</button>
-            <button onclick="sell()" class="btn-sell">卖出</button>
+            <label class="trade-label">代码</label>
+            <input type="text" id="symbol" value="m00001" placeholder="股票代码" class="trade-input-symbol">
+            <label class="trade-label">数量</label>
+            <input type="number" id="qty" value="100" placeholder="股数" class="trade-input-qty" min="1" step="1">
+            <button onclick="buy()" class="btn-success trade-btn">买 入</button>
+            <button onclick="sell()" class="btn-sell trade-btn">卖 出</button>
             <span id="trade-msg"></span>
         </div>
     </div>
@@ -102,15 +105,22 @@
         <div id="dashboard" class="card assets-card">
             <div class="dashboard-header">
                 <h2>我的资产组合</h2>
-                <div>可用现金: <strong id="cash-display">0.00</strong> 元</div>
+                <div style="text-align:right;">
+                    <div>总资产: <strong id="total-assets-display">0.00</strong> 元</div>
+                    <div style="font-size:13px;color:var(--text-secondary);">可用现金: <strong id="cash-display">0.00</strong> 元</div>
+                    <div style="font-size:13px;margin-top:2px;">总盈亏: <strong id="total-pnl-display">--</strong></div>
+                </div>
             </div>
 
             <table class="table-modern">
                 <thead>
                     <tr>
-                        <th>股票代码</th>
-                        <th>持有数量 (股)</th>
+                        <th>股票代码 / 名称</th>
+                        <th>持有数量</th>
                         <th>持仓成本</th>
+                        <th>现价</th>
+                        <th>市值</th>
+                        <th>盈亏</th>
                         <th>操作</th>
                     </tr>
                 </thead>
