@@ -1,8 +1,8 @@
 """
 模拟股票数据源 — 独立模块，与 market_data.py / AkShare 完全解耦。
 
-当股票代码以 "mock" 开头时（不区分大小写），由本模块提供模拟 K 线数据，
-支持日线/周线/月线和 WebSocket 实时推送。
+当股票代码以 "mock" 开头或匹配 m\\d{5} 格式时（不区分大小写），
+由本模块（或 mock_market 包）提供模拟 K 线数据。
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import math
 import random
+import re
 from collections import OrderedDict
 from datetime import date, datetime, timedelta
 
@@ -34,9 +35,14 @@ _monthly_cache: dict[str, list[dict]] = {}
 # 公开工具函数
 # ══════════════════════════════════════════════════════════════════════
 
+# 匹配旧格式 "mock*"（任意以 mock 开头的代码）与新格式 "m00001"~"m99999"
+_NEW_MOCK_RE = re.compile(r'^m\d{5}$', re.IGNORECASE)
+
+
 def is_mock_symbol(symbol: str) -> bool:
-    """判断是否为模拟股票代码（以 'mock' 开头，不区分大小写）。"""
-    return symbol.lower().startswith("mock")
+    """判断是否为模拟股票代码（以 'mock' 开头或匹配 mNNNNN 格式，不区分大小写）。"""
+    s = symbol.lower()
+    return s.startswith("mock") or bool(_NEW_MOCK_RE.match(s))
 
 
 # ══════════════════════════════════════════════════════════════════════

@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 自动登录检测
     autoLogin();
     checkAndShowGuide();
+    // 加载模拟公司列表
+    fetchMockCompanies();
 });
 
 async function autoLogin() {
@@ -386,6 +388,45 @@ function quickSell(symbol) {
     document.getElementById('symbol').value = symbol;
     document.getElementById('qty').value = 100;
     loadChart();
+}
+
+// 获取并渲染模拟公司快捷选择按钮
+async function fetchMockCompanies() {
+    const listEl = document.getElementById('mock-company-list');
+    if (!listEl) return;
+
+    try {
+        const res = await fetch('/api/admin/companies');
+        if (!res.ok) {
+            listEl.innerHTML = '<span style="font-size:12px;color:#999;">不可用</span>';
+            return;
+        }
+        const data = await res.json();
+        const companies = data.companies || [];
+
+        if (companies.length === 0) {
+            listEl.innerHTML = '<span style="font-size:12px;color:#999;">暂无公司</span>';
+            return;
+        }
+
+        listEl.innerHTML = '';
+        companies.forEach(c => {
+            const btn = document.createElement('button');
+            btn.textContent = c.code;
+            btn.title = `${c.name} (σ=${c.daily_sigma.toFixed(3)})`;
+            btn.style.cssText = 'padding:3px 6px;font-size:11px;cursor:pointer;border:1px solid #ddd;border-radius:3px;background:#f7f9fc;';
+            btn.onmouseenter = () => { btn.style.background = '#e3edf7'; };
+            btn.onmouseleave = () => { btn.style.background = '#f7f9fc'; };
+            btn.onclick = () => {
+                document.getElementById('symbol').value = c.code;
+                loadChart();
+            };
+            listEl.appendChild(btn);
+        });
+    } catch (e) {
+        console.error('加载模拟公司列表失败', e);
+        listEl.innerHTML = '<span style="font-size:12px;color:#999;">加载失败</span>';
+    }
 }
 
 // 辅助函数：更新价格颜色

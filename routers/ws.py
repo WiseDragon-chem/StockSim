@@ -1,12 +1,16 @@
 import asyncio
 import datetime
+import re
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 
 from market_data import get_stock_kline
 from mock_data import get_mock_latest_bar, is_mock_symbol
+from mock_market.engine import MockPriceEngine
 
 router = APIRouter()
+
+_NEW_MOCK_RE = re.compile(r'^m\d{5}$', re.IGNORECASE)
 
 
 # ── 交易日判断 ────────────────────────────────────────────────────
@@ -23,8 +27,11 @@ def is_trading_time() -> bool:
 
 
 def fetch_latest_daily_bar(symbol: str):
-    """获取最新一根日K线（走缓存，不直接调 API）。"""
+    """获取最新一根日K线（走缓存或引擎，不直接调 API）。"""
     if is_mock_symbol(symbol):
+        if bool(_NEW_MOCK_RE.match(symbol)):
+            engine = MockPriceEngine.get_instance()
+            return engine.get_latest_bar(symbol)
         return get_mock_latest_bar(symbol)
 
     try:
