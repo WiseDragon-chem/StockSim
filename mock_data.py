@@ -306,7 +306,7 @@ class _TickerState:
         return {
             "type": "update",
             "data": {
-                "time": sim_time,
+                "time": self.day_time,   # 纯日期格式 "YYYY-MM-DD"，与 setData 格式一致
                 "open": self.day_open,
                 "high": round(self.session_high, 2),
                 "low": round(self.session_low, 2),

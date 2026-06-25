@@ -171,8 +171,8 @@ button:hover { background-color: var(--primary-hover); transform: translateY(-1p
     border-radius: 6px;
 }
 
-.price-up { color: var(--success-color); font-weight: bold; }
-.price-down { color: var(--danger-color); font-weight: bold; }
+.price-up { color: var(--danger-color); font-weight: bold; }
+.price-down { color: var(--success-color); font-weight: bold; }
 
 .data-row {
     margin: 5px 0;

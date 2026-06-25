@@ -277,15 +277,17 @@ async function loadChart() {
         
         if (Array.isArray(data) && data.length > 0) {
             // 清除现有数据并设置新数据
-            candlestickSeries.setData(data);
+            // API 返回最新在前，LightweightCharts 需要按时间升序（最旧在前）
+            const sortedData = [...data].reverse();
+            candlestickSeries.setData(sortedData);
             chartInstance.timeScale().fitContent();
-            
-            // 更新价格显示
-            currentPrice = data[data.length - 1].close;
-            updatePriceUI(currentPrice, 0); 
-            
+
+            // 更新价格显示（反转后最后一条是最新数据）
+            currentPrice = sortedData[sortedData.length - 1].close;
+            updatePriceUI(currentPrice, 0);
+
             // 更新更新时间
-            const lastTime = data[data.length - 1].time;
+            const lastTime = sortedData[sortedData.length - 1].time;
             document.getElementById('update-time').innerText = lastTime;
             
             // 更新股票名称显示
@@ -452,21 +454,19 @@ function connectWebSocket() {
                         return; // 如果不一致，忽略此消息
                     }
 
-                    // ── 绘图暂时注释（LightweightCharts update 待修复时间格式兼容）──
-                    // if (currentPeriod === 'daily') {
-                    //     const klineData = payload.data;
-                    //     if (candlestickSeries) {
-                    //         candlestickSeries.update({
-                    //             time: klineData.time,
-                    //             open: klineData.open,
-                    //             high: klineData.high,
-                    //             low: klineData.low,
-                    //             close: klineData.close
-                    //         });
-                    //     }
-                    // }
-
                     const kd = payload.data;
+
+                    if (currentPeriod === 'daily') {
+                        if (candlestickSeries) {
+                            candlestickSeries.update({
+                                time: kd.time,
+                                open: kd.open,
+                                high: kd.high,
+                                low: kd.low,
+                                close: kd.close
+                            });
+                        }
+                    }
 
                     // 更新右侧文本面板
                     const currentPrice = kd.close;
