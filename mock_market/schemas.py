@@ -27,11 +27,11 @@ class MockCompanyCreate(BaseModel):
                                description="日波动率")
     mean_reversion: float = Field(default=0.06, ge=0.0, le=1.0,
                                   description="均值回归强度")
-    tick_sigma: float = Field(default=0.003, ge=0.0, le=0.10,
+    tick_sigma: float = Field(default=0.003, ge=0.0, le=0.30,
                               description="单 tick 噪声标准差")
     tick_interval_seconds: int = Field(default=30, ge=1, le=3600,
                                        description="tick 间隔（秒）")
-    ticks_per_day: int = Field(default=240, ge=10, le=1440,
+    ticks_per_day: int = Field(default=240, ge=10, le=86400,
                                description="每天 tick 数")
     price_min: float = Field(default=0.50, ge=0.01, le=100000.0,
                              description="价格下限")
@@ -46,9 +46,9 @@ class MockCompanyUpdate(BaseModel):
     daily_drift_mu: Optional[float] = Field(default=None, ge=-0.05, le=0.05)
     daily_sigma: Optional[float] = Field(default=None, ge=0.001, le=0.20)
     mean_reversion: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    tick_sigma: Optional[float] = Field(default=None, ge=0.0, le=0.10)
+    tick_sigma: Optional[float] = Field(default=None, ge=0.0, le=0.30)
     tick_interval_seconds: Optional[int] = Field(default=None, ge=1, le=3600)
-    ticks_per_day: Optional[int] = Field(default=None, ge=10, le=1440)
+    ticks_per_day: Optional[int] = Field(default=None, ge=10, le=86400)
     price_min: Optional[float] = Field(default=None, ge=0.01, le=100000.0)
     price_max: Optional[float] = Field(default=None, ge=1.0, le=1000000.0)
     is_active: Optional[bool] = Field(default=None)
