@@ -57,10 +57,16 @@ function connectWebSocket() {
                     }
 
                     // 更新右侧文本面板
-                    const currentPrice = kd.close;
+                    // 更新全局 currentPrice（供交易和账户模块读取）
+                    currentPrice = kd.close;
                     // 后端没传 change，前端根据 (close-open)/open×100 计算涨跌幅
                     const change = kd.open ? ((kd.close - kd.open) / kd.open * 100) : 0;
                     updatePriceUI(currentPrice, change);
+
+                    // 同时更新持仓表中该股票的现价和盈亏（如果持有）
+                    if (typeof updatePositionPrice === 'function') {
+                        updatePositionPrice(currentWsSymbol, currentPrice);
+                    }
 
                     const volEl = document.getElementById('volume');
                     if (volEl) volEl.innerText = kd.volume || 0;

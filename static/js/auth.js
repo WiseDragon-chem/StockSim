@@ -157,7 +157,8 @@ function logout() {
     // 如果 WebSocket 已连接则断开
     if (wsConnected) disconnectWebSocket();
 
-    // 更新资产选项卡提示
+    // 清空账户缓存和显示
+    if (typeof clearAccountCache === 'function') clearAccountCache();
     updateAssetsLoginHint();
 
     // 清空持仓列表和资产显示
@@ -167,6 +168,8 @@ function logout() {
     if (cashDisplay) cashDisplay.innerText = '0.00';
     const totalDisplay = document.getElementById('total-assets-display');
     if (totalDisplay) totalDisplay.innerText = '0.00';
+    const totalPnlEl = document.getElementById('total-pnl-display');
+    if (totalPnlEl) { totalPnlEl.innerText = '--'; totalPnlEl.style.color = ''; }
 }
 
 // ==================== UI 更新 ====================
