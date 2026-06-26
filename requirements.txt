@@ -10,3 +10,4 @@ akshare
 pandas
 websockets
 efinance
+markdown

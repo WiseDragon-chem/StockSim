@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSim 使用教程</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { background: var(--bg); }
+  .tutorial-wrapper {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .tutorial-wrapper h1 { font-size: 28px; color: var(--primary); margin-bottom: 8px; }
+  .tutorial-wrapper h2 {
+    font-size: 20px; color: var(--text); margin-top: 36px; margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 2px solid var(--border);
+  }
+  .tutorial-wrapper h3 { font-size: 16px; color: var(--text); margin-top: 24px; }
+  .tutorial-wrapper p { line-height: 1.8; color: var(--text); }
+  .tutorial-wrapper ul, .tutorial-wrapper ol { line-height: 1.8; padding-left: 24px; }
+  .tutorial-wrapper li { margin-bottom: 4px; }
+  .tutorial-wrapper table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+  }
+  .tutorial-wrapper th {
+    background: var(--border-light); padding: 8px 12px; text-align: left;
+    font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  }
+  .tutorial-wrapper td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border-light); font-size: 14px;
+  }
+  .tutorial-wrapper code {
+    background: var(--border-light); padding: 2px 6px; border-radius: 4px;
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 13px;
+  }
+  .tutorial-wrapper pre {
+    background: #f5f5f5; padding: 14px 18px; border-radius: 6px;
+    overflow-x: auto; font-size: 13px; line-height: 1.6;
+  }
+  .tutorial-wrapper blockquote {
+    border-left: 3px solid var(--primary); margin: 12px 0;
+    padding: 8px 16px; background: var(--primary-light);
+    border-radius: 0 6px 6px 0; color: var(--text-secondary); font-size: 14px;
+  }
+  .tutorial-wrapper hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .tutorial-wrapper strong { color: var(--text); }
+  .tutorial-wrapper a { color: var(--primary); }
+  .back-link {
+    display: inline-block; margin-bottom: 20px; color: var(--primary);
+    text-decoration: none; font-size: 14px;
+  }
+  .back-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="tutorial-wrapper">
+  <a href="/" class="back-link">← 返回 StockSim</a>
+  <h1 id="stocksim">StockSim 使用教程</h1>
+<p>StockSim 是一个 <strong>A 股市场模拟交易系统</strong>。你可以浏览真实 A 股和模拟公司的 K 线行情，使用虚拟资金练习买卖交易，实时追踪持仓盈亏。</p>
+<hr />
+<h2 id="_1">快速上手</h2>
+<h3 id="1">1. 注册与登录</h3>
+<p>点击页面右上角的 <strong>"登录"</strong> 按钮，在弹出的窗口中切换到 <strong>"注册"</strong> 选项卡，设置用户名和密码完成注册。注册成功后自动切回登录页，输入账号密码即可登录。</p>
+<ul>
+<li>新用户初始资金：<strong>100,000 元</strong></li>
+<li>登录后顶栏会显示你的 <strong>总资产</strong> 和 <strong>现金余额</strong></li>
+</ul>
+<h3 id="2">2. 选择股票</h3>
+<p>系统提供两类股票：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>代码格式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模拟公司</td>
+<td><code>m00001</code> ~ <code>m00010</code></td>
+<td>由 StockSim 引擎 24/7 模拟生成行情</td>
+</tr>
+<tr>
+<td>实时 A 股</td>
+<td><code>600519</code>、<code>000001</code> 等</td>
+<td>来自东方财富 / AkShare 的真实历史数据</td>
+</tr>
+</tbody>
+</table>
+<p>在 <strong>"模拟公司"</strong> 选项卡中，左侧边栏列出了所有可交易的模拟公司。点击任意公司即可加载其 K 线图。</p>
+<p>在 <strong>"实时 A 股"</strong> 选项卡中，输入 6 位 A 股代码（如 <code>600519</code> 贵州茅台），点击 <strong>"查询"</strong> 即可加载行情。</p>
+<h3 id="3">3. 模拟交易</h3>
+<p>在页面底部的交易栏中：</p>
+<ol>
+<li>确认 <strong>"代码"</strong> 输入框中的股票代码正确</li>
+<li>在 <strong>"数量"</strong> 输入框中填写交易股数（默认 100）</li>
+<li>点击 <strong>"买入"</strong> 或 <strong>"卖出"</strong></li>
+</ol>
+<blockquote>
+<p>⚠️ 交易以当前加载的 K 线最新价格成交。请先加载 K 线再交易。</p>
+</blockquote>
+<h3 id="4">4. 查看资产</h3>
+<p>点击 <strong>"我的资产"</strong> 选项卡，可以看到：</p>
+<ul>
+<li><strong>总资产</strong>：现金 + 所有持仓的当前市值</li>
+<li><strong>可用现金</strong>：可用于新交易的余额</li>
+<li><strong>总盈亏</strong>：所有持仓的浮动盈亏合计</li>
+<li><strong>持仓明细</strong>：每只股票的代码、名称、数量、成本、现价、市值、盈亏</li>
+</ul>
+<hr />
+<h2 id="_2">界面指南</h2>
+<pre><code>┌──────────────────────────────────────────────┐
+│  📈 StockSim 模拟股市        📖教程  登录    │  ← 顶栏
+├──────────────────────────────────────────────┤
+│   🏭模拟公司  │  📊实时A股  │  💰我的资产    │  ← 选项卡
+├──────────────┼───────────────────────────────┤
+│  侧边栏      │   K线图 + 均线 + 成交量       │  ← 主内容区
+│  公司列表    │   价格 / 涨跌幅 / 周期切换    │
+│  或查询框    │                               │
+├──────────────┴───────────────────────────────┤
+│  代码 [____] 数量 [____] [买入] [卖出]        │  ← 交易栏
+└──────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_3">顶栏</h3>
+<ul>
+<li>左侧显示 <strong>StockSim 标识</strong></li>
+<li>右侧在未登录时显示 <strong>"登录"</strong> 和 <strong>"教程"</strong> 按钮</li>
+<li>登录后显示 <strong>总资产</strong>、<strong>现金</strong>、<strong>用户名</strong> 和 <strong>"退出"</strong> 按钮</li>
+</ul>
+<h3 id="_4">选项卡</h3>
+<ul>
+<li><strong>模拟公司</strong>：浏览和交易 StockSim 内置的模拟股票</li>
+<li><strong>实时 A 股</strong>：输入真实 A 股代码查询行情和交易</li>
+<li><strong>我的资产</strong>：查看持仓、盈亏和资产明细</li>
+</ul>
+<h3 id="_5">侧边栏</h3>
+<ul>
+<li>模拟公司选项卡：列出所有公司的 <strong>代码</strong>、<strong>名称</strong> 和 <strong>波动率 (σ)</strong></li>
+<li>实时 A 股选项卡：提供 <strong>代码输入框</strong> 和 <strong>查询按钮</strong></li>
+</ul>
+<h3 id="_6">价格信息栏</h3>
+<p>位于 K 线图下方，显示：</p>
+<ul>
+<li><strong>当前价格</strong>：最新一根 K 线的收盘价</li>
+<li><strong>涨跌幅</strong>：当日涨跌百分比</li>
+<li><strong>成交量</strong>：当日成交股数</li>
+<li><strong>更新时间</strong>：数据最后刷新的时间</li>
+<li><strong>周期切换</strong>：日 K / 月 K</li>
+<li><strong>实时推送</strong>：开启后每 2 秒通过 WebSocket 推送模拟行情</li>
+</ul>
+<hr />
+<h2 id="k">K 线图阅读指南</h2>
+<h3 id="k_1">什么是 K 线</h3>
+<p>一根 K 线（蜡烛线）表示一个交易周期内的价格变化，包含四个关键价格：</p>
+<pre><code>  最高价 ─── ┬  上影线
+             │
+  收盘价 ─── ┤  实体（阳线）
+             │
+  开盘价 ─── ┤
+             │
+  最低价 ─── ┴  下影线
+</code></pre>
+<ul>
+<li><strong>阳线（红柱）</strong>：收盘价 &gt; 开盘价，价格上涨</li>
+<li><strong>阴线（绿柱）</strong>：收盘价 &lt; 开盘价，价格下跌</li>
+</ul>
+<blockquote>
+<p>注意：A 股使用 <strong>红涨绿跌</strong> 的颜色惯例，与西方市场相反。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>颜色</th>
+<th>含义</th>
+<th>实体含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 红色</td>
+<td>上涨</td>
+<td>开盘在下，收盘在上</td>
+</tr>
+<tr>
+<td>🟢 绿色</td>
+<td>下跌</td>
+<td>开盘在上，收盘在下</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>实体长</strong>：买卖力量差距大，趋势强劲</li>
+<li><strong>实体短</strong>：买卖力量接近，方向不明</li>
+<li><strong>上影线长</strong>：上方抛压大，可能回落</li>
+<li><strong>下影线长</strong>：下方支撑强，可能反弹</li>
+</ul>
+<h3 id="ma">移动均线（MA）</h3>
+<p>图表上叠加的三条彩色曲线是移动平均线，反映不同周期的平均持仓成本：</p>
+<table>
+<thead>
+<tr>
+<th>线</th>
+<th>颜色</th>
+<th>周期</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MA5</td>
+<td>🟠 橙色</td>
+<td>5 日</td>
+<td>超短期趋势，股价波动的第一支撑/压力</td>
+</tr>
+<tr>
+<td>MA10</td>
+<td>🟣 紫色</td>
+<td>10 日</td>
+<td>短期趋势，常用于短线操作参考</td>
+</tr>
+<tr>
+<td>MA20</td>
+<td>🔵 蓝色</td>
+<td>20 日</td>
+<td>中期趋势，一个月左右的交易节奏</td>
+</tr>
+</tbody>
+</table>
+<p><strong>常见信号：</strong></p>
+<ul>
+<li><strong>多头排列</strong>：MA5 &gt; MA10 &gt; MA20，三条线向上发散 → 上升趋势</li>
+<li><strong>空头排列</strong>：MA5 &lt; MA10 &lt; MA20，三条线向下发散 → 下降趋势</li>
+<li><strong>金叉</strong>：短期均线上穿长期均线（如 MA5 上穿 MA20）→ 看涨信号</li>
+<li><strong>死叉</strong>：短期均线下穿长期均线（如 MA5 下穿 MA20）→ 看跌信号</li>
+<li><strong>均线支撑</strong>：股价回踩均线后反弹 → 均线作为支撑位</li>
+</ul>
+<h3 id="_7">成交量柱</h3>
+<p>K 线图底部区域的柱状图为成交量：</p>
+<ul>
+<li><strong>红柱</strong>：当日上涨，买方力量主导</li>
+<li><strong>绿柱</strong>：当日下跌，卖方力量主导</li>
+<li><strong>柱越高</strong>：当日成交越活跃，市场关注度高</li>
+</ul>
+<p><strong>量价关系：</strong></p>
+<table>
+<thead>
+<tr>
+<th>价格</th>
+<th>成交量</th>
+<th>信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上涨</td>
+<td>放量</td>
+<td>上涨有资金支持，趋势健康</td>
+</tr>
+<tr>
+<td>上涨</td>
+<td>缩量</td>
+<td>上涨动力不足，可能见顶</td>
+</tr>
+<tr>
+<td>下跌</td>
+<td>放量</td>
+<td>恐慌抛售，可能继续下跌</td>
+</tr>
+<tr>
+<td>下跌</td>
+<td>缩量</td>
+<td>下跌趋于衰竭，可能企稳</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_8">悬浮提示</h3>
+<p>将鼠标悬停在任意 K 线上，会弹出该交易日的详细数据：</p>
+<pre><code>📅 2026-06-26
+开: 86.50
+高: 88.20         ← 红色
+低: 85.10         ← 绿色
+收: 87.30
+涨跌: +0.93%      ← 红色/绿色
+量: 2,407,812
+</code></pre>
+<hr />
+<h2 id="_9">实时推送</h2>
+<p>点击价格信息栏中的 <strong>"开启实时推送"</strong> 按钮，系统会通过 WebSocket 连接实时推送行情：</p>
+<ul>
+<li><strong>模拟公司</strong>：每 2 秒推送一次最新 tick 数据，价格持续变动</li>
+<li><strong>实时 A 股</strong>：交易时间每 10 秒刷新，非交易时间每 60 秒刷新</li>
+</ul>
+<p>连接后，K 线图、价格、持仓盈亏都会自动更新。按钮变为红色 <strong>"关闭推送"</strong>，再次点击断开连接。</p>
+<hr />
+<h2 id="_10">资产与盈亏</h2>
+<h3 id="_11">资产计算</h3>
+<pre><code>总资产 = 可用现金 + Σ(每只持仓数量 × 最新市价)
+</code></pre>
+<h3 id="_12">盈亏计算</h3>
+<pre><code>单只盈亏 = (当前市价 - 持仓成本) × 持有数量
+总盈亏 = Σ 所有持仓盈亏
+</code></pre>
+<p>在 <strong>"我的资产"</strong> 选项卡中：
+- 盈利显示为 <strong>红色粗体</strong>（+¥）
+- 亏损显示为 <strong>绿色粗体</strong>（-¥）
+- 无法获取价格时显示 <code>--</code></p>
+<p>盈亏会随 WebSocket 实时推送自动更新。</p>
+<hr />
+<h2 id="_13">常见问题</h2>
+<p><strong>Q: 为什么 K 线图不显示？</strong>
+A: 可能是图表库 CDN 加载失败（网络问题）。刷新页面重试。其他功能不受影响。</p>
+<p><strong>Q: 为什么模拟公司价格变化很慢？</strong>
+A: 每只模拟公司的 tick 间隔不同（20~40 秒），WebSocket 虽然每 2 秒推送一次，但数据只在 tick 时变化。</p>
+<p><strong>Q: 查询 A 股时要注意什么？</strong>
+A: 不要过快连续查询，否则 IP 可能被数据源（同花顺）暂时封禁。系统已启用 1 小时缓存减轻压力。</p>
+<p><strong>Q: 交易价格如何确定？</strong>
+A: 以当前 K 线图加载的最新收盘价作为交易价格。这是模拟交易的设计，实际交易中价格由市场撮合决定。</p>
+<p><strong>Q: 月 K 和日 K 有什么区别？</strong>
+A: 日 K 每根代表一天，适合短线分析；月 K 每根代表一个月，适合观察长期趋势。通过价格信息栏的 <strong>日K/月K</strong> 按钮切换。</p>
+<hr />
+<p>祝你交易顺利！🎉</p>
+</div>
+</body>
+</html>
