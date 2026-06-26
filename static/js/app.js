@@ -9,6 +9,10 @@ let ws = null;
 let wsConnected = false;
 let chartInstance = null;
 let candlestickSeries = null;
+let ma5Series = null;
+let ma10Series = null;
+let ma20Series = null;
+let volumeSeries = null;
 let heartbeatInterval = null;
 let currentPeriod = 'daily'; // 默认日K
 let currentWsSymbol = '';
@@ -37,6 +41,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     borderDownColor: '#00c853',
                     wickUpColor: '#d50000',
                     wickDownColor: '#00c853',
+                });
+
+                // 移动均线 MA5 / MA10 / MA20
+                ma5Series = chartInstance.addLineSeries({
+                    color: '#f59e0b', lineWidth: 1, priceLineVisible: false,
+                });
+                ma10Series = chartInstance.addLineSeries({
+                    color: '#8b5cf6', lineWidth: 1, priceLineVisible: false,
+                });
+                ma20Series = chartInstance.addLineSeries({
+                    color: '#3b82f6', lineWidth: 1, priceLineVisible: false,
+                });
+
+                // 成交量柱（独立窗格）
+                volumeSeries = chartInstance.addHistogramSeries({
+                    priceScaleId: 'volume',
+                    priceFormat: { type: 'volume' },
+                });
+                chartInstance.priceScale('volume').applyOptions({
+                    scaleMargins: { top: 0.85, bottom: 0 },
                 });
 
                 // 窗口大小自适应

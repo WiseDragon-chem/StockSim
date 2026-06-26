@@ -22,6 +22,23 @@ async function loadChart() {
             // API 返回最新在前，LightweightCharts 需要按时间升序（最旧在前）
             const sortedData = [...data].reverse();
             candlestickSeries.setData(sortedData);
+
+            // 计算并设置移动均线
+            if (ma5Series) ma5Series.setData(calcSMA(sortedData, 5));
+            if (ma10Series) ma10Series.setData(calcSMA(sortedData, 10));
+            if (ma20Series) ma20Series.setData(calcSMA(sortedData, 20));
+
+            // 计算并设置成交量
+            if (volumeSeries) {
+                volumeSeries.setData(sortedData.map(d => ({
+                    time: d.time,
+                    value: d.volume || 0,
+                    color: d.close >= d.open
+                        ? 'rgba(213, 0, 0, 0.35)'
+                        : 'rgba(0, 200, 83, 0.35)',
+                })));
+            }
+
             chartInstance.timeScale().fitContent();
 
             // 更新价格显示（反转后最后一条是最新数据）
@@ -140,6 +157,22 @@ function setupChartTooltip() {
         chartTooltip.style.top = top + 'px';
         chartTooltip.style.display = 'block';
     });
+}
+
+// ============================================================
+// 简单移动平均线 (SMA)
+// ============================================================
+
+function calcSMA(data, period) {
+    const result = [];
+    for (let i = period - 1; i < data.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += data[i - j].close;
+        }
+        result.push({ time: data[i].time, value: sum / period });
+    }
+    return result;
 }
 
 // 辅助函数：更新价格颜色
