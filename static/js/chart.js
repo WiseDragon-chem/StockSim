@@ -66,6 +66,82 @@ function switchPeriod(period) {
     loadChart();
 }
 
+// ============================================================
+// 十字光标悬浮提示（K线详细数据）
+// ============================================================
+
+let chartTooltip = null;
+
+function setupChartTooltip() {
+    if (!chartInstance || !candlestickSeries) return;
+    if (chartTooltip) return; // 防止重复初始化
+
+    // 创建悬浮提示 div
+    chartTooltip = document.createElement('div');
+    chartTooltip.id = 'chart-tooltip';
+    chartTooltip.style.cssText = `
+        display: none;
+        position: absolute;
+        z-index: 100;
+        background: rgba(224, 242, 254, 0.95);
+        color: #1e293b;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.7;
+        pointer-events: none;
+        white-space: nowrap;
+        font-family: 'Consolas', 'Courier New', monospace;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid rgba(14, 165, 233, 0.25);
+    `;
+    document.getElementById('chart-container').appendChild(chartTooltip);
+
+    chartInstance.subscribeCrosshairMove((param) => {
+        if (!param.point || !param.time || !param.seriesData || !param.seriesData.size) {
+            chartTooltip.style.display = 'none';
+            return;
+        }
+
+        const data = param.seriesData.get(candlestickSeries);
+        if (!data) {
+            chartTooltip.style.display = 'none';
+            return;
+        }
+
+        const change = data.open ? ((data.close - data.open) / data.open * 100) : 0;
+        const changeSign = change >= 0 ? '+' : '';
+        const changeColor = change >= 0 ? '#dc2626' : '#059669';  // 红涨绿跌
+
+        chartTooltip.innerHTML = `
+            <div style="color:#64748b;margin-bottom:3px;">📅 ${data.time}</div>
+            <div>开: <span style="color:#1e293b;font-weight:600;">${data.open.toFixed(2)}</span></div>
+            <div>高: <span style="color:#dc2626;">${data.high.toFixed(2)}</span></div>
+            <div>低: <span style="color:#059669;">${data.low.toFixed(2)}</span></div>
+            <div>收: <span style="color:#1e293b;font-weight:600;">${data.close.toFixed(2)}</span></div>
+            <div style="color:${changeColor};font-weight:600;">涨跌: ${changeSign}${change.toFixed(2)}%</div>
+            ${data.volume !== undefined ? '<div style="color:#64748b;">量: ' + data.volume.toLocaleString() + '</div>' : ''}
+        `;
+
+        // 定位 tooltip（避免超出图表边界）
+        const container = document.getElementById('chart-container');
+        const rect = container.getBoundingClientRect();
+        let left = param.point.x + 16;
+        let top = param.point.y - 160;
+
+        // 防止超出右边界
+        if (left + 150 > rect.width) left = param.point.x - 160;
+        // 防止超出上边界
+        if (top < 0) top = param.point.y + 10;
+        // 防止超出下边界
+        if (top + 150 > rect.height) top = param.point.y - 150;
+
+        chartTooltip.style.left = left + 'px';
+        chartTooltip.style.top = top + 'px';
+        chartTooltip.style.display = 'block';
+    });
+}
+
 // 辅助函数：更新价格颜色
 function updatePriceUI(price, change) {
     const priceEl = document.getElementById('current-price');

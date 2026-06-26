@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         chartInstance.resize(chartDom.clientWidth, 450);
                     }
                 });
+
+                // 启用 K 线悬浮提示
+                setupChartTooltip();
             } catch (e) {
                 console.error('图表初始化失败', e);
                 chartDom.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-size:14px;">⚠️ 图表初始化失败，请刷新页面重试</div>';
