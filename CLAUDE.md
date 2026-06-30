@@ -8,59 +8,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the server (listens on 192.168.7.3:7999)
+# Run the server (listens on 127.0.0.1:7999)
 python main.py
 
-# Run the cache test
-python test_cache.py
-
 # Dev: run with auto-reload
-uvicorn main:app --host 192.168.7.3 --port 7999 --reload
+uvicorn main:app --host 127.0.0.1 --port 7999 --reload
 ```
 
 API docs are auto-generated at `http://<host>:7999/docs` (Swagger UI) and `/redoc`.
+User tutorial (rendered from `docs/tutorial.md`) is served at `/help`.
 
 ## Architecture Overview
 
-This is a **Chinese A-share stock market simulator** — a fullstack FastAPI + vanilla JS SPA that lets users register, browse real stock data via AkShare, and simulate buy/sell trades with fake money.
+A **Chinese A-share stock market simulator** — Fullstack FastAPI + vanilla JS SPA. Users register, browse real A-share data via AkShare or 24/7 mock companies, and simulate buy/sell trades with virtual money. Initial cash: 100,000 ¥.
 
-### Backend: FastAPI + SQLite + AkShare
+### Backend: FastAPI + SQLite + AkShare + Mock Engine
 
-**Data flow:** AkShare (web-scraped A-share data) → `market_data.py` (with JSON file cache) → routers → JSON responses → frontend (Lightweight Charts candlestick chart).
+**Data flow:** AkShare / MockPriceEngine → `market_data.py` / `mock_market/` (with JSON cache) → routers → JSON → frontend (Lightweight Charts with MA lines + volume histogram).
 
 **Layers:**
-| File | Role |
+
+| File / Package | Role |
 |---|---|
-| `main.py` | App factory, lifespan (starts WebSocket price updater), route registration, static file mount |
-| `core/database.py` | SQLAlchemy engine/session/Base — SQLite at `data/sql_app.db`, `check_same_thread=False` for FastAPI async |
-| `core/models.py` | 3 ORM tables: `User` (cash_balance default 100k), `Position` (per-symbol holdings), `Order` (trade audit log) |
-| `core/schemas.py` | Pydantic request/response models — `TradeRequest`, `UserDisplay` (nests `PositionDisplay`), `OrderDisplay` |
-| `core/auth.py` | bcrypt password hashing + JWT (HS256, 30min expiry); `get_current_user` is the Depends callable that protects trade routes |
-| `market_data.py` | AkShare wrapper: fetches `stock_zh_a_hist`, caches to `cache/{symbol}_{period}.json` (1h expiry), incremental update + merge, fallback to stale cache on API failure |
-| `routers/users.py` | POST `/register`, POST `/login` (OAuth2 form, returns JWT), GET `/me` |
-| `routers/market.py` | GET `/{symbol}` (K-line, `?period=daily|weekly|monthly`), GET `/{symbol}/name` (stock Chinese name from `stock_individual_info_em`) |
-| `routers/trade.py` | POST `/buy`, POST `/sell` — weighted average cost on buy, deletes Position row when quantity reaches 0 on sell |
-| `routers/ws.py` | WebSocket at `/ws/{symbol}` — pushes latest daily bar every 3s; frontend updates the candlestick chart in real-time |
+| `main.py` | App factory, lifespan (MockPriceEngine start/stop), route registration, `/help` page builder, static mount |
+| `core/database.py` | SQLAlchemy engine/session/Base — SQLite `data/sql_app.db`, `check_same_thread=False` |
+| `core/models.py` | ORM: `User` (cash 100k default), `Position` (per-symbol), `Order` (trade log) |
+| `core/schemas.py` | Pydantic: `TradeRequest`, `UserDisplay`, `PositionDisplay`, `OrderDisplay` |
+| `core/auth.py` | bcrypt + JWT (HS256, 30min); `get_current_user` dependency |
+| `market_data.py` | AkShare wrapper: fetches A-share history, caches to `cache/{symbol}_{period}.json` (1h), incremental merge, stale-cache fallback |
+| `routers/users.py` | POST `/register`, POST `/login`, GET `/me` |
+| `routers/market.py` | GET `/{symbol}` (K-line, `?period=daily|weekly|monthly`), GET `/{symbol}/name` |
+| `routers/trade.py` | POST `/buy`, POST `/sell` — weighted avg cost on buy, delete Position at qty 0 |
+| `routers/ws.py` | WebSocket `/ws/{symbol}` — mock 2s push, real A-shares 10s/60s (trading/non-trading) |
+| `routers/mock_admin.py` | Full CRUD for mock companies at `/api/admin/companies` |
+| `mock_market/` | Standalone subsystem: own SQLite DB, Brownian bridge price engine, 10 default companies |
+| `mock_market/schemas.py` | Pydantic schemas with relaxed limits: `ticks_per_day ≤ 86400`, `tick_sigma ≤ 0.30` |
+| `docs/tutorial.md` | Markdown user guide; auto-converted to `static/help.html` at startup via `markdown` pkg |
 
-### Frontend: Single HTML + vanilla JS + Lightweight Charts
+### Frontend: SPA with vanilla JS + Lightweight Charts
 
-`static/index.html` loads Lightweight Charts from CDN and split JS modules from `static/js/`. No build step, no framework.
+`static/index.html` loads Lightweight Charts from CDN and 6 JS modules. No build step, no framework.
 
-**UI sections:** login/register header → left chart area → right sidebar (symbol lookup, trade panel, period toggle) → bottom dashboard (positions table + cash balance).
+**UI layout:** top bar (logo, tutorial btn, login/assets) → tab bar (模拟公司 / 实时A股 / 我的资产) → sidebar + chart area → bottom trade bar.
 
-**State flow in frontend JS modules (`static/js/`):**
-- `token` stored in `localStorage`; auto-login on page load via `/api/users/me`
-- `currentPrice` is set by the last K-line's close — used as the trade execution price (frontend-determined price)
-- WebSocket lifecycle: manual connect button → 3s push cycle → updates `candlestickSeries.update()` (daily only) + price panel
-- `refreshAccount()` called after login and after every buy/sell to re-render the position table
+**Chart features:** candlestick series, MA5/MA10/MA20 line overlays, volume histogram (separate pane), crosshair tooltip with OHLCV details.
+
+**JS modules (`static/js/`):**
+
+| File | Purpose |
+|---|---|
+| `app.js` | Global state (token, currentPrice, chart series), DOMContentLoaded init, tab switching, mock company sidebar, guide modal |
+| `auth.js` | Login modal (unified login/register tabs), autoLogin, logout, top-bar UI update |
+| `account.js` | `refreshAccount()` — fetches positions + names + prices, calculates P&L and total assets; `updatePositionPrice()` for real-time WS updates; `positionCache` for fast recalculation |
+| `chart.js` | `loadChart()`, `switchPeriod()`, `updatePriceUI()`, `calcSMA()`, `setupChartTooltip()` |
+| `trading.js` | `buy()`, `sell()`, `trade()` — validates token/price/qty, immediately updates top-bar cash after trade |
+| `websocket.js` | `connectWebSocket()` (toggle), heartbeat, `onmessage` updates `currentPrice` global + chart series + price UI + P&L |
+
+**Key chart globals:** `chartInstance`, `candlestickSeries`, `ma5Series`, `ma10Series`, `ma20Series`, `volumeSeries`.
 
 ### Key Design Decisions & Gotchas
 
-- **Trade price is frontend-supplied**, not locked by the server. The `TradeRequest` schema accepts `price` from the client — this is intentional for a simulator but means the server trusts the client on price.
-- **`routers/` has no `__init__.py`** — relies on implicit namespace packages (Python 3.3+).
-- **`config.py` and `crud.py` have been deleted** — they were empty stubs from the original design; all logic now lives in `core/` or inline in routers.
-- **`main.py:12` imports `price_updater` from `routers.ws` but `routers/ws.py` doesn't define it** — this will crash at startup if the lifespan runs. Either implement the function or remove the lifespan block.
-- **SQLite + concurrent access**: `check_same_thread=False` is required; writes from multiple requests need `SessionLocal` per-request (the `get_db` dependency handles this).
-- **AkShare rate-limiting**: the guide warns users not to query too fast or the upstream (同花顺) will block the IP. The 1h cache is partly to mitigate this.
-- **bcrypt password truncation**: `core/auth.py:23` in users router truncates passwords to 72 chars for bcrypt compatibility (`user.password[:72]`).
-- **Candlestick colors are inverted vs Western convention**: red = up (China), green = down — matching Chinese market display norms.
+- **Trade price is frontend-supplied.** `TradeRequest.price` comes from the client — intentional for a simulator.
+- **`routers/` has no `__init__.py`** — implicit namespace packages (Python 3.3+).
+- **SQLite + async**: `check_same_thread=False`. Use `SessionLocal` per-request (`get_db` dependency).
+- **AkShare rate-limiting**: don't query too fast or 同花顺 blocks the IP. 1h cache mitigates this.
+- **bcrypt truncation**: `core/auth.py` truncates passwords to 72 chars (`user.password[:72]`).
+- **Candlestick colors (Chinese convention)**: red = up, green = down.
+- **Mock engine tick flow**: `simulated_day = ticks_per_day × tick_interval_seconds` real seconds. Schema allows up to 86400 ticks/day for 1:1 real-time simulation.
+- **MA lines + volume** are computed client-side from K-line data; `calcSMA()` in chart.js.
+- **P&L updates in real-time**: WebSocket `onmessage` calls `updatePositionPrice()` to refresh the assets table without a full `refreshAccount()` fetch.
+- **`/help` page** is auto-generated at startup from `docs/tutorial.md` using Python `markdown` with tables/fenced_code/toc extensions.
