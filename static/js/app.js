@@ -7,6 +7,8 @@ let token = "";
 let currentPrice = 0;
 let ws = null;
 let wsConnected = false;
+let mockAllWs = null;
+let mockAllWsConnected = false;
 let chartInstance = null;
 let candlestickSeries = null;
 let ma5Series = null;
@@ -18,6 +20,8 @@ let currentPeriod = 'daily'; // 默认日K
 let currentWsSymbol = '';
 let currentTab = 'mock';
 let mockCompanies = [];
+let sidebarPrices = {};  // {code: {price, open}} — 侧边栏实时价格
+let loadChartRequestId = 0;  // 防止并发 loadChart() 竞态
 
 document.addEventListener('DOMContentLoaded', () => {
     // ================================================================
@@ -90,13 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化侧边栏（模拟公司列表）
     renderSidebar('mock');
 
-    // 加载模拟公司列表 → 完成后渲染列表并加载第一家公司
+    // 加载模拟公司列表 → 渲染列表 → 自动连接全量 WebSocket
     fetchMockCompanies().then(() => {
         renderMockCompanyList();
         if (mockCompanies.length > 0) {
             document.getElementById('symbol').value = mockCompanies[0].code;
-            loadChart();  // chart.js 内部有 if (!candlestickSeries) return; 保护
+            loadChart();
         }
+        connectMockAllWebSocket();  // 自动连接模拟股市全量推送
     });
 
     // 自动登录检测
@@ -195,10 +200,6 @@ function loadRealStock() {
 // ============================================================
 
 async function fetchMockCompanies() {
-    const sidebar = document.getElementById('tab-sidebar');
-    // 如果侧边栏存在但还没有 mock-company-sidebar，直接渲染到 sidebar
-    // 如果 sidebar 不存在（初始加载时），创建临时容器
-
     try {
         const res = await fetch('/api/admin/companies');
         if (!res.ok) {
@@ -232,10 +233,21 @@ function renderMockCompanyList() {
             item.classList.add('active');
         }
 
+        // 获取该公司的当前价格（红涨绿跌）
+        const priceData = sidebarPrices[c.code];
+        let priceHTML = '';
+        if (priceData && priceData.price != null) {
+            const change = priceData.open ? (priceData.price - priceData.open) / priceData.open : 0;
+            const colorClass = change >= 0 ? 'price-up' : 'price-down';
+            priceHTML = `<span class="company-price ${colorClass}">${priceData.price.toFixed(2)}</span>`;
+        } else {
+            priceHTML = `<span class="company-price">-</span>`;
+        }
+
         item.innerHTML = `
             <span class="company-code">${c.code}</span>
             <span class="company-name">${c.name}</span>
-            <span class="company-sigma">σ${c.daily_sigma.toFixed(2)}</span>
+            ${priceHTML}
         `;
 
         item.addEventListener('click', () => {
@@ -244,9 +256,135 @@ function renderMockCompanyList() {
             container.querySelectorAll('.company-list-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
             loadChart();
+            // 模拟股市使用全量 WebSocket，无需切换连接
         });
 
         container.appendChild(item);
+    });
+}
+
+// ============================================================
+// 模拟股市全量 WebSocket（单连接，推送所有公司价格）
+// ============================================================
+
+function connectMockAllWebSocket() {
+    if (mockAllWsConnected) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/mock/all`;
+
+    try {
+        mockAllWs = new WebSocket(wsUrl);
+        const sock = mockAllWs;  // 捕获引用，防止 onclose 覆盖
+
+        sock.onopen = () => {
+            mockAllWsConnected = true;
+            updateWsStatus('connected');
+            startHeartbeat();
+        };
+
+        sock.onmessage = (event) => {
+            // 身份校验：防止旧连接消息污染
+            if (sock !== mockAllWs) return;
+
+            if (event.data === 'ping') { sock.send('pong'); return; }
+
+            try {
+                const payload = JSON.parse(event.data);
+                if (payload.type === 'update_all' && payload.data) {
+                    const allData = payload.data;
+
+                    // 1. 更新所有侧边栏价格
+                    updateAllSidebarPrices(allData);
+
+                    // 2. 更新当前选中股票的图表、价格UI、持仓
+                    const currentSymbol = document.getElementById('symbol')?.value || '';
+                    const curData = allData[currentSymbol];
+                    if (curData && currentPeriod === 'daily') {
+                        if (candlestickSeries) {
+                            candlestickSeries.update({
+                                time: curData.time,
+                                open: curData.open,
+                                high: curData.high,
+                                low: curData.low,
+                                close: curData.close,
+                            });
+                        }
+
+                        currentPrice = curData.close;
+                        const change = curData.open ? ((curData.close - curData.open) / curData.open * 100) : 0;
+                        updatePriceUI(currentPrice, change);
+
+                        // 更新持仓表
+                        if (typeof updatePositionPrice === 'function') {
+                            updatePositionPrice(currentSymbol, currentPrice);
+                        }
+
+                        const volEl = document.getElementById('volume');
+                        if (volEl) volEl.innerText = curData.volume || 0;
+
+                        const timeEl = document.getElementById('update-time');
+                        if (timeEl) {
+                            timeEl.innerText = new Date().toLocaleTimeString();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Mock WS 数据解析忽略');
+            }
+        };
+
+        sock.onclose = () => {
+            // 身份校验：只处理当前活跃连接的事件
+            if (sock !== mockAllWs) return;
+            mockAllWsConnected = false;
+            updateWsStatus('disconnected');
+            stopHeartbeat();
+        };
+    } catch (e) {
+        console.error('Mock WebSocket Error', e);
+    }
+}
+
+function disconnectMockAllWebSocket() {
+    if (mockAllWs) {
+        mockAllWs.onclose = null;  // 阻止旧回调触发
+        mockAllWs.close(1000);
+        mockAllWs = null;
+    }
+    mockAllWsConnected = false;
+    stopHeartbeat();
+    updateWsStatus('disconnected');
+}
+
+// ============================================================
+// 侧边栏价格批量更新
+// ============================================================
+
+function updateAllSidebarPrices(allData) {
+    // 更新全局缓存
+    for (const [code, data] of Object.entries(allData)) {
+        sidebarPrices[code] = { price: data.close, open: data.open };
+    }
+
+    // 刷新侧边栏 DOM
+    const container = document.getElementById('mock-company-sidebar');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.company-list-item');
+    items.forEach(item => {
+        const codeEl = item.querySelector('.company-code');
+        if (!codeEl) return;
+        const code = codeEl.textContent;
+        const priceData = sidebarPrices[code];
+        const priceEl = item.querySelector('.company-price');
+        if (!priceEl) return;
+
+        if (priceData && priceData.price != null) {
+            const change = priceData.open ? (priceData.price - priceData.open) / priceData.open : 0;
+            priceEl.textContent = priceData.price.toFixed(2);
+            priceEl.className = 'company-price ' + (change >= 0 ? 'price-up' : 'price-down');
+        }
     });
 }
 

@@ -6,6 +6,7 @@ async function loadChart() {
     if (!candlestickSeries) return;
     const symbolInput = document.getElementById('symbol');
     const symbol = symbolInput ? symbolInput.value : '600519';
+    const requestId = ++loadChartRequestId;  // 递增版本号，防止并发竞态
 
     try {
         // 同时获取股票数据和股票名称
@@ -16,6 +17,9 @@ async function loadChart() {
 
         const data = await dataRes.json();
         const nameData = await nameRes.json();
+
+        // 如果已发起更新的请求，丢弃本次结果
+        if (requestId !== loadChartRequestId) return;
 
         if (Array.isArray(data) && data.length > 0) {
             // 清除现有数据并设置新数据
@@ -52,14 +56,6 @@ async function loadChart() {
             // 更新股票名称显示
             document.getElementById('current-symbol').innerText = symbol;
             document.getElementById('stock-name').innerText = ' - ' + nameData.name;
-
-            // 检查WebSocket连接状态
-            if (wsConnected && currentWsSymbol !== symbol) {
-                // 如果WebSocket连接的股票代码与当前股票代码不一致，提示用户重新连接
-                alert('已切换股票，请重新开启实时推送以获取新股票的实时数据');
-                // 可以选择自动断开连接
-                disconnectWebSocket();
-            }
 
         } else {
             alert("未获取到数据，请检查股票代码");

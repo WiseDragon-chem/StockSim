@@ -57,6 +57,38 @@ def fetch_latest_daily_bar(symbol: str):
         return None
 
 
+@router.websocket("/ws/mock/all")
+async def websocket_all_prices(websocket: WebSocket):
+    """推送所有模拟公司的当前价格（全量广播，2s 间隔）。"""
+    await websocket.accept()
+    print("WS 全量推送连接建立（模拟公司）")
+    engine = MockPriceEngine.get_instance()
+
+    try:
+        while True:
+            prices = engine.get_all_ticker_prices()
+            if prices:
+                try:
+                    await websocket.send_json({
+                        "type": "update_all",
+                        "data": prices,
+                    })
+                except (WebSocketDisconnect, RuntimeError):
+                    print("全量推送检测到客户端断开，停止推送")
+                    break
+            await asyncio.sleep(2)
+
+    except WebSocketDisconnect:
+        print("全量推送客户端主动断开")
+    except Exception as e:
+        print(f"全量推送 WS 未知异常: {e}")
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
 @router.websocket("/ws/{symbol}")
 async def websocket_endpoint(websocket: WebSocket, symbol: str):
     await websocket.accept()

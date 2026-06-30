@@ -475,6 +475,20 @@ class MockPriceEngine:
             return None
         return {"type": "update", "data": bar}
 
+    def get_all_ticker_prices(self) -> dict[str, dict]:
+        """
+        返回所有活跃 ticker 的完整日线快照（供 WebSocket 全量推送）。
+        不推进 tick，只读取当前 state（线程安全）。
+        返回格式：{code: {time, open, high, low, close, volume}, ...}
+        """
+        result = {}
+        for code, ticker in self.tickers.items():
+            with ticker.lock:
+                bar = ticker.current_bar()
+                if bar is not None:
+                    result[code] = bar
+        return result
+
     async def reload_company(self, code: str) -> bool:
         """重新从 DB 加载公司配置（管理员修改超参数后调用）。"""
         db = MockSessionLocal()

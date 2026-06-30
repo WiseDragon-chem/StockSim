@@ -155,6 +155,7 @@ function logout() {
     updateLoginUI(false);
 
     // 如果 WebSocket 已连接则断开
+    if (mockAllWsConnected) disconnectMockAllWebSocket();
     if (wsConnected) disconnectWebSocket();
 
     // 清空账户缓存和显示

@@ -199,12 +199,22 @@ h1, h2, h3 {
     flex: 1;
 }
 
-.company-list-item .company-sigma {
-    font-size: 10px;
-    color: var(--text-secondary);
-    background: var(--border-light);
-    padding: 1px 6px;
-    border-radius: 8px;
+.company-list-item .company-price {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Consolas', 'Courier New', monospace;
+    min-width: 52px;
+    text-align: right;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.company-list-item .company-price.price-up {
+    color: #dc2626;        /* 红色涨 */
+}
+
+.company-list-item .company-price.price-down {
+    color: #059669;        /* 绿色跌 */
 }
 
 /* 股票查询（实时A股侧边栏） */

@@ -1,6 +1,8 @@
 // ============================================================
-// websocket.js — WebSocket：实时推送 / 心跳 / 连接管理
+// websocket.js — WebSocket：模拟股市全量推送 / 实时A股单股推送 / 心跳 / 连接管理
 // ============================================================
+
+// ── 实时A股 per-symbol WebSocket ──────────────────────────────
 
 function connectWebSocket() {
     const symbol = document.getElementById('symbol').value;
@@ -29,6 +31,9 @@ function connectWebSocket() {
         };
 
         sock.onmessage = (event) => {
+            // 身份校验：防止旧连接消息污染当前状态
+            if (sock !== ws) return;
+
             if (event.data === 'ping') { sock.send('pong'); return; }
 
             try {
@@ -57,9 +62,7 @@ function connectWebSocket() {
                     }
 
                     // 更新右侧文本面板
-                    // 更新全局 currentPrice（供交易和账户模块读取）
                     currentPrice = kd.close;
-                    // 后端没传 change，前端根据 (close-open)/open×100 计算涨跌幅
                     const change = kd.open ? ((kd.close - kd.open) / kd.open * 100) : 0;
                     updatePriceUI(currentPrice, change);
 
@@ -94,8 +97,11 @@ function connectWebSocket() {
 
 // 页面卸载前关闭WebSocket连接
 window.addEventListener('beforeunload', () => {
+    if (mockAllWs) {
+        mockAllWs.onclose = null;
+        mockAllWs.close();
+    }
     if (ws) {
-        // 主动关闭，避免服务器端抛出异常
         ws.close();
     }
 });
@@ -112,16 +118,21 @@ function disconnectWebSocket() {
     updateWsStatus('disconnected');
 }
 
+// ── 状态显示（同时考虑模拟全量 WS 和实时 A 股 WS）────────────
+
 function updateWsStatus(status) {
     const el = document.getElementById('ws-status');
     const btn = document.getElementById('ws-btn');
-    if(!el || !btn) return;
+    if (!el || !btn) return;
 
-    if (status === 'connected') {
+    // 任一 WebSocket 连接即为已连接
+    const isConnected = mockAllWsConnected || (status === 'connected') || wsConnected;
+
+    if (isConnected) {
         el.className = 'ws-status ws-connected';
         el.innerText = '● 实时连接';
         btn.innerText = '关闭推送';
-        btn.classList.add('btn-danger'); // 变为红色按钮提示关闭
+        btn.classList.add('btn-danger');
         btn.classList.remove('btn-secondary');
     } else {
         el.className = 'ws-status ws-disconnected';
@@ -132,12 +143,37 @@ function updateWsStatus(status) {
     }
 }
 
+// 按钮点击：优先断开模拟全量WS，其次实时A股WS，最后尝试连接实时A股
+function handleWsButtonClick() {
+    if (mockAllWsConnected) {
+        // 断开模拟全量推送
+        disconnectMockAllWebSocket();
+    } else if (wsConnected) {
+        // 断开实时A股
+        disconnectWebSocket();
+    } else {
+        // 尝试连接实时A股
+        connectWebSocket();
+    }
+}
+
+// ── 心跳（供任一活跃 WebSocket 使用）──────────────────────────
+
 function startHeartbeat() {
+    stopHeartbeat();  // 避免重复定时器
     heartbeatInterval = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) ws.send('ping');
+        if (mockAllWs && mockAllWs.readyState === WebSocket.OPEN) {
+            mockAllWs.send('ping');
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('ping');
+        }
     }, 25000);
 }
 
 function stopHeartbeat() {
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
 }

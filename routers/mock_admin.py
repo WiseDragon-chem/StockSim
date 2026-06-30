@@ -29,6 +29,13 @@ def list_companies():
     )
 
 
+@router.get("/companies/prices")
+def list_company_prices():
+    """获取所有模拟公司的当前价格（供侧边栏实时展示）。"""
+    engine = MockPriceEngine.get_instance()
+    return engine.get_all_ticker_prices()
+
+
 @router.get("/companies/{code}", response_model=MockCompanyDisplay)
 def get_company(code: str):
     """获取单家公司详情。"""
