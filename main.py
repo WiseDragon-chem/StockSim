@@ -8,13 +8,17 @@ from fastapi.responses import FileResponse
 from core.database import engine, Base
 from mock_market.database import init_mock_db
 from mock_market.engine import MockPriceEngine
-from routers import users, market, trade, ws, mock_admin, admin_panel
+from bank.database import init_bank_db
+from routers import users, market, trade, ws, mock_admin, admin_panel, bank
 
 # 1. 创建数据库表 (如果不存在) —— 主 DB
 Base.metadata.create_all(bind=engine)
 
 # 2. 初始化 mock DB（建表 + 播种默认公司）
 init_mock_db()
+
+# 2b. 初始化 bank DB（建表）
+init_bank_db()
 
 
 # 3.  lifespan：控制 MockPriceEngine 后台任务
@@ -44,6 +48,7 @@ app.include_router(trade.router, prefix="/api/trade", tags=["Trade"])
 app.include_router(ws.router, prefix="/api", tags=["WebSocket"])
 app.include_router(mock_admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(admin_panel.router, tags=["AdminPanel"])
+app.include_router(bank.router, prefix="/api/bank", tags=["Bank"])
 
 # 5. 编译教程 Markdown → HTML（启动时执行一次）
 def build_help_page():

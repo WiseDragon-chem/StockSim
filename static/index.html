@@ -36,6 +36,7 @@
         <button class="tab-btn" data-tab="real" onclick="switchTab('real')">📊 实时A股</button>
         <button class="tab-btn" data-tab="assets" onclick="switchTab('assets')">💰 我的资产</button>
         <button class="tab-btn" data-tab="account" onclick="switchTab('account')">📋 个人账户</button>
+        <button class="tab-btn" data-tab="bank" onclick="switchTab('bank')">🏦 银行</button>
     </nav>
 
     <!-- ==================== 交易区（模拟公司 & 实时A股共用） ==================== -->
@@ -165,6 +166,109 @@
         </div>
     </div>
 
+    <!-- ==================== 银行区（默认隐藏） ==================== -->
+    <div id="content-bank" style="display:none;">
+        <p id="bank-login-hint" style="text-align:center;color:var(--text-secondary);padding:40px;">
+            🔒 请先登录后使用银行服务
+        </p>
+
+        <div id="bank-dashboard" style="display:none;">
+            <!-- 储蓄账户卡片 -->
+            <div class="card assets-card">
+                <div class="dashboard-header">
+                    <h2>🏦 储蓄账户</h2>
+                </div>
+                <div class="bank-balance-row">
+                    <div class="bank-balance-item">
+                        <span class="bank-label">储蓄余额</span>
+                        <span id="bank-savings" class="bank-value">¥0.00</span>
+                    </div>
+                    <div class="bank-balance-item">
+                        <span class="bank-label">储蓄年利率</span>
+                        <span id="bank-savings-rate" class="bank-value">1.50%</span>
+                    </div>
+                    <div class="bank-balance-item">
+                        <span class="bank-label">可用现金（交易账户）</span>
+                        <span id="bank-cash" class="bank-value">¥0.00</span>
+                    </div>
+                </div>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                    💡 储蓄余额每日计息，年化 ~1.50%。存入后资金不可用于交易，需取出后方可使用。
+                </p>
+                <div id="bank-savings-input-row" class="bank-input-row" style="display:none;">
+                    <input type="text" inputmode="decimal" id="bank-savings-input" class="bank-inline-input"
+                           placeholder="输入金额">
+                    <button id="bank-savings-confirm-btn" class="btn-success btn-sm">确认</button>
+                    <button onclick="cancelBankInput()" class="btn-secondary btn-sm">取消</button>
+                    <span id="bank-savings-input-msg" class="bank-input-msg"></span>
+                </div>
+                <div class="bank-actions-row">
+                    <button onclick="toggleBankInput('deposit')" class="btn-success">💰 存入储蓄</button>
+                    <button onclick="toggleBankInput('withdraw')" class="btn-secondary">📤 取出储蓄</button>
+                </div>
+            </div>
+
+            <!-- 融资/贷款卡片 -->
+            <div class="card assets-card">
+                <div class="dashboard-header">
+                    <h2>📊 融资账户</h2>
+                </div>
+                <div class="bank-balance-row">
+                    <div class="bank-balance-item">
+                        <span class="bank-label">贷款本金</span>
+                        <span id="bank-loan-principal" class="bank-value warning">¥0.00</span>
+                    </div>
+                    <div class="bank-balance-item">
+                        <span class="bank-label">应计利息</span>
+                        <span id="bank-accrued-interest" class="bank-value">¥0.00</span>
+                    </div>
+                    <div class="bank-balance-item">
+                        <span class="bank-label">贷款年利率</span>
+                        <span id="bank-loan-rate" class="bank-value">7.30%</span>
+                    </div>
+                    <div class="bank-balance-item">
+                        <span class="bank-label">可用额度</span>
+                        <span id="bank-available-credit" class="bank-value">¥0.00</span>
+                    </div>
+                </div>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                    💡 可用额度 = 持仓市值 × 50% − 贷款本金 − 应计利息。借款直接打入交易账户，可用于买卖股票。
+                </p>
+                <div id="bank-loan-input-row" class="bank-input-row" style="display:none;">
+                    <input type="text" inputmode="decimal" id="bank-loan-input" class="bank-inline-input"
+                           placeholder="输入金额">
+                    <button id="bank-loan-confirm-btn" class="btn-success btn-sm">确认</button>
+                    <button onclick="cancelBankInput()" class="btn-secondary btn-sm">取消</button>
+                    <span id="bank-loan-input-msg" class="bank-input-msg"></span>
+                </div>
+                <div class="bank-actions-row">
+                    <button onclick="toggleBankInput('borrow')" class="btn-success">💸 借款</button>
+                    <button onclick="toggleBankInput('repay')" class="btn-sell">💳 还款</button>
+                </div>
+            </div>
+
+            <!-- 交易记录 -->
+            <div class="card assets-card">
+                <div class="dashboard-header">
+                    <h2>📋 银行交易记录</h2>
+                </div>
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>金额</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bank-transaction-list">
+                        <tr><td colspan="4" style="text-align:center;color:var(--text-secondary);">暂无记录</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== 登录/注册弹窗 ==================== -->
     <div id="auth-modal" class="modal-overlay" style="display:none;">
         <div class="modal-content auth-modal-content">
@@ -242,5 +346,6 @@
     <script src="js/chart.js"></script>
     <script src="js/trading.js"></script>
     <script src="js/websocket.js"></script>
+    <script src="js/bank.js"></script>
 </body>
 </html>

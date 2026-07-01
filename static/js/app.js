@@ -126,12 +126,14 @@ function switchTab(tabName) {
     const tradeBar = document.getElementById('trade-bar');
     const contentAssets = document.getElementById('content-assets');
     const contentAccount = document.getElementById('content-account');
+    const contentBank = document.getElementById('content-bank');
 
     // 先全部隐藏
     if (contentTrading) contentTrading.style.display = 'none';
     if (tradeBar) tradeBar.style.display = 'none';
     if (contentAssets) contentAssets.style.display = 'none';
     if (contentAccount) contentAccount.style.display = 'none';
+    if (contentBank) contentBank.style.display = 'none';
 
     // 清除旧定时器
     if (assetsRefreshInterval) { clearInterval(assetsRefreshInterval); assetsRefreshInterval = null; }
@@ -150,6 +152,12 @@ function switchTab(tabName) {
         // 显示个人账户（交易历史）
         if (contentAccount) contentAccount.style.display = 'block';
         if (token) refreshOrderHistory();
+
+    } else if (tabName === 'bank') {
+        // 显示银行
+        if (contentBank) contentBank.style.display = 'block';
+        if (token) refreshBankTab();
+        if (typeof updateBankLoginHint === 'function') updateBankLoginHint();
 
     } else {
         // 显示交易区（mock / real）

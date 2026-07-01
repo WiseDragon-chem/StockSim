@@ -6,9 +6,17 @@
 let positionCache = {};   // { symbol: { quantity, averageCost, name } }
 let cachedCashBalance = 0;
 
+// 银行负债缓存（由 bank.js 维护，此处提供默认值以防 bank.js 未加载）
+if (typeof cachedLoanPrincipal === 'undefined') { var cachedLoanPrincipal = 0; }
+if (typeof cachedAccruedInterest === 'undefined') { var cachedAccruedInterest = 0; }
+
 function clearAccountCache() {
     positionCache = {};
     cachedCashBalance = 0;
+    // 同时清除银行缓存
+    if (typeof clearBankCache === 'function') clearBankCache();
+    cachedLoanPrincipal = 0;
+    cachedAccruedInterest = 0;
 }
 
 async function refreshAccount() {
@@ -52,9 +60,9 @@ async function refreshAccount() {
             };
         });
 
-        // 计算总资产 = 现金 + 所有持仓市值
+        // 计算总资产 = 现金 + 所有持仓市值 - 贷款本金 - 应计利息
         const totalMarketValue = positionDetails.reduce((sum, p) => sum + p.marketValue, 0);
-        const totalAssets = user.cash_balance + totalMarketValue;
+        const totalAssets = user.cash_balance + totalMarketValue - cachedLoanPrincipal - cachedAccruedInterest;
         const totalPnl = positionDetails.reduce((sum, p) => sum + (p.pnl || 0), 0);
 
         // ---- 更新顶栏 ----
@@ -198,9 +206,10 @@ function updatePositionPrice(symbol, newPrice) {
 function recalcTotalFromDom() {
     const tbody = document.getElementById('position-list');
     if (!tbody || !tbody.children.length) {
-        // 没有持仓时仅用现金显示总资产
+        // 没有持仓时仅用现金（扣除贷款）显示总资产
         const topAssets = document.getElementById('top-bar-assets');
-        if (topAssets) topAssets.innerText = '¥' + cachedCashBalance.toFixed(2);
+        const netNoPositions = cachedCashBalance - cachedLoanPrincipal - cachedAccruedInterest;
+        if (topAssets) topAssets.innerText = '¥' + netNoPositions.toFixed(2);
         return;
     }
 
@@ -228,7 +237,7 @@ function recalcTotalFromDom() {
         }
     });
 
-    const totalAssets = cachedCashBalance + totalMv;
+    const totalAssets = cachedCashBalance + totalMv - cachedLoanPrincipal - cachedAccruedInterest;
 
     // 更新顶栏总资产
     const topAssets = document.getElementById('top-bar-assets');
@@ -420,7 +429,7 @@ async function refreshPositionPrices() {
     }
 
     // 更新总资产和总盈亏
-    const totalAssets = cachedCashBalance + totalMv;
+    const totalAssets = cachedCashBalance + totalMv - cachedLoanPrincipal - cachedAccruedInterest;
     const topAssets = document.getElementById('top-bar-assets');
     if (topAssets) topAssets.innerText = '¥' + totalAssets.toFixed(2);
     const totalDisplay = document.getElementById('total-assets-display');

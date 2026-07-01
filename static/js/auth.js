@@ -160,7 +160,12 @@ function logout() {
 
     // 清空账户缓存和显示
     if (typeof clearAccountCache === 'function') clearAccountCache();
+    // 清空银行缓存
+    if (typeof clearBankCache === 'function') clearBankCache();
+    cachedLoanPrincipal = 0;
+    cachedAccruedInterest = 0;
     updateAssetsLoginHint();
+    if (typeof updateBankLoginHint === 'function') updateBankLoginHint();
 
     // 清空持仓列表和资产显示
     const tbody = document.getElementById('position-list');
