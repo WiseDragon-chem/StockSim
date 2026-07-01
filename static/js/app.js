@@ -22,6 +22,7 @@ let currentTab = 'mock';
 let mockCompanies = [];
 let sidebarPrices = {};  // {code: {price, open}} — 侧边栏实时价格
 let loadChartRequestId = 0;  // 防止并发 loadChart() 竞态
+let assetsRefreshInterval = null;  // 资产自动刷新定时器
 
 document.addEventListener('DOMContentLoaded', () => {
     // ================================================================
@@ -124,28 +125,36 @@ function switchTab(tabName) {
     const contentTrading = document.getElementById('content-trading');
     const tradeBar = document.getElementById('trade-bar');
     const contentAssets = document.getElementById('content-assets');
+    const contentAccount = document.getElementById('content-account');
+
+    // 先全部隐藏
+    if (contentTrading) contentTrading.style.display = 'none';
+    if (tradeBar) tradeBar.style.display = 'none';
+    if (contentAssets) contentAssets.style.display = 'none';
+    if (contentAccount) contentAccount.style.display = 'none';
+
+    // 清除旧定时器
+    if (assetsRefreshInterval) { clearInterval(assetsRefreshInterval); assetsRefreshInterval = null; }
 
     if (tabName === 'assets') {
-        // 显示资产区，隐藏交易区
-        if (contentTrading) contentTrading.style.display = 'none';
-        if (tradeBar) tradeBar.style.display = 'none';
+        // 显示资产区
         if (contentAssets) contentAssets.style.display = 'block';
-
-        // 如果已登录则刷新账户
         if (token) {
             refreshAccount();
+            // 每 5 秒刷新价格和盈亏
+            assetsRefreshInterval = setInterval(refreshPositionPrices, 5000);
         }
-
-        // 更新登录提示
         updateAssetsLoginHint();
 
+    } else if (tabName === 'account') {
+        // 显示个人账户（交易历史）
+        if (contentAccount) contentAccount.style.display = 'block';
+        if (token) refreshOrderHistory();
+
     } else {
-        // 显示交易区，隐藏资产区
+        // 显示交易区（mock / real）
         if (contentTrading) contentTrading.style.display = 'flex';
         if (tradeBar) tradeBar.style.display = 'block';
-        if (contentAssets) contentAssets.style.display = 'none';
-
-        // 切换侧边栏内容
         renderSidebar(tabName);
     }
 }

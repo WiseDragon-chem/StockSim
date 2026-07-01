@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -52,3 +54,18 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=schemas.UserDisplay)
 def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
+
+
+# 获取当前用户的交易历史
+@router.get("/orders", response_model=list[schemas.OrderDisplay])
+def get_orders(
+    symbol: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """返回当前用户的交易历史（按时间倒序）。可选 ?symbol= 筛选。"""
+    q = db.query(models.Order).filter(models.Order.user_id == current_user.id)
+    if symbol:
+        q = q.filter(models.Order.symbol == symbol)
+    orders = q.order_by(models.Order.timestamp.desc()).all()
+    return [schemas.OrderDisplay.model_validate(o) for o in orders]

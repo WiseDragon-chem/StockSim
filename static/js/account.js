@@ -142,7 +142,9 @@ function renderPositionTable(positionDetails) {
                     ${pos.name ? '<br><span style="font-size:11px;color:var(--text-secondary);">' + pos.name + '</span>' : ''}
                 </td>
                 <td class="qty-cell">${pos.quantity}</td>
-                <td class="cost-cell">${pos.average_cost.toFixed(2)}</td>
+                <td class="cost-cell cost-clickable" onclick="toggleBuyHistory(this, '${pos.symbol}')" title="点击查看买入明细">
+                    ${pos.average_cost.toFixed(2)} <span class="expand-icon">▼</span>
+                </td>
                 <td class="price-cell">${cpStr}</td>
                 <td class="mv-cell">${mvStr}</td>
                 <td class="pnl-container">${pnlHtml}</td>
@@ -242,5 +244,194 @@ function recalcTotalFromDom() {
         const absPnl = Math.abs(totalPnl);
         totalPnlEl.innerText = (totalPnl >= 0 ? '+' : '-') + '¥' + absPnl.toFixed(2);
         totalPnlEl.style.color = totalPnl >= 0 ? 'var(--danger)' : 'var(--success)';
+    }
+}
+
+// ============================================================
+// 交易历史（个人账户选项卡）
+// ============================================================
+
+async function refreshOrderHistory() {
+    const tbody = document.getElementById('order-history-list');
+    if (!tbody || !token) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px;">请先登录后查看</td></tr>';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/users/orders', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed');
+        const orders = await res.json();
+
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px;">暂无交易记录</td></tr>';
+            return;
+        }
+
+        // 并行获取所有涉及股票的名称
+        const symbolSet = [...new Set(orders.map(o => o.symbol))];
+        const nameMap = {};
+        await Promise.all(symbolSet.map(async s => {
+            try {
+                const r = await fetch(`/api/market/${s}/name`);
+                if (r.ok) { const d = await r.json(); nameMap[s] = d.name; }
+            } catch (e) { /* ignore */ }
+        }));
+
+        tbody.innerHTML = orders.map(o => {
+            const typeLabel = o.order_type === 'buy' ? '买入' : '卖出';
+            const typeColor = o.order_type === 'buy' ? 'var(--danger)' : 'var(--success)';
+            const amount = (o.price * o.quantity).toFixed(2);
+            const name = nameMap[o.symbol] || '';
+            const time = new Date(o.timestamp + 'Z').toLocaleString('zh-CN');
+            return `
+                <tr>
+                    <td style="font-size:12px;">${time}</td>
+                    <td><strong>${o.symbol}</strong></td>
+                    <td style="font-size:12px;color:var(--text-secondary);">${name}</td>
+                    <td style="color:${typeColor};font-weight:600;">${typeLabel}</td>
+                    <td>${o.price.toFixed(2)}</td>
+                    <td>${o.quantity}</td>
+                    <td>¥${amount}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('获取订单历史失败', e);
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px;">加载失败，请稍后重试</td></tr>';
+    }
+}
+
+// ============================================================
+// 平均成本价展开 — 买入明细
+// ============================================================
+
+async function toggleBuyHistory(cellEl, symbol) {
+    // 如果已展开则收起
+    const parentRow = cellEl.parentElement;
+    const nextRow = parentRow.nextElementSibling;
+    if (nextRow && nextRow.classList.contains('order-detail-row')) {
+        nextRow.remove();
+        const icon = cellEl.querySelector('.expand-icon');
+        if (icon) icon.textContent = '▼';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/users/orders?symbol=${symbol}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const orders = await res.json();
+        const buys = orders.filter(o => o.order_type === 'buy');
+        if (buys.length === 0) return;
+
+        const totalQty = buys.reduce((s, o) => s + o.quantity, 0);
+        const totalCost = buys.reduce((s, o) => s + o.price * o.quantity, 0);
+        const avgCost = totalQty > 0 ? (totalCost / totalQty).toFixed(2) : '--';
+
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'order-detail-row';
+        detailRow.innerHTML = `
+            <td colspan="7">
+                <div class="order-detail-panel">
+                    <table class="order-detail-table">
+                        <thead><tr>
+                            <th>买入时间</th><th>数量（股）</th><th>买入价格</th><th>金额</th>
+                        </tr></thead>
+                        <tbody>${buys.map(o => `
+                            <tr>
+                                <td>${new Date(o.timestamp + 'Z').toLocaleString('zh-CN')}</td>
+                                <td>${o.quantity}</td>
+                                <td>${o.price.toFixed(2)}</td>
+                                <td>¥${(o.price * o.quantity).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}</tbody>
+                    </table>
+                    <div class="order-detail-footer">
+                        加权平均：总成本 ¥${totalCost.toFixed(2)} / 总股数 ${totalQty} = <strong>¥${avgCost}</strong>
+                    </div>
+                </div>
+            </td>
+        `;
+        parentRow.after(detailRow);
+        const icon = cellEl.querySelector('.expand-icon');
+        if (icon) icon.textContent = '▲';
+    } catch (e) {
+        console.error('获取买入明细失败', e);
+    }
+}
+
+// ============================================================
+// 自动刷新持仓价格（每 5s，供资产选项卡使用）
+// ============================================================
+
+async function refreshPositionPrices() {
+    if (!token) return;
+    const symbols = Object.keys(positionCache);
+    if (symbols.length === 0) return;
+
+    // 并行获取所有持仓的最新价格
+    const priceMap = {};
+    await Promise.all(symbols.map(async (sym) => {
+        try {
+            const res = await fetch(`/api/market/${sym}?period=daily`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                priceMap[sym] = data[0].close;
+            }
+        } catch (e) { /* ignore */ }
+    }));
+
+    // 更新 DOM
+    let totalMv = 0;
+    let totalPnl = 0;
+    let hasPnl = false;
+
+    for (const sym of symbols) {
+        const newPrice = priceMap[sym];
+        if (newPrice == null) continue;
+
+        const cached = positionCache[sym];
+        const row = document.querySelector(`#position-list tr[data-symbol="${sym}"]`);
+        if (!row) continue;
+
+        const mv = cached.quantity * newPrice;
+        const pnl = (newPrice - cached.averageCost) * cached.quantity;
+        totalMv += mv;
+        totalPnl += pnl;
+        hasPnl = true;
+
+        const priceCell = row.querySelector('.price-cell');
+        if (priceCell) priceCell.innerText = newPrice.toFixed(2);
+
+        const mvCell = row.querySelector('.mv-cell');
+        if (mvCell) mvCell.innerText = mv.toFixed(2);
+
+        const pnlContainer = row.querySelector('.pnl-container');
+        if (pnlContainer) {
+            const absPnl = Math.abs(pnl);
+            const color = pnl >= 0 ? 'var(--danger)' : 'var(--success)';
+            const sign = pnl >= 0 ? '+' : '-';
+            pnlContainer.innerHTML = `<strong class="pnl-cell" style="color:${color};">${sign}¥${absPnl.toFixed(2)}</strong>`;
+        }
+    }
+
+    // 更新总资产和总盈亏
+    const totalAssets = cachedCashBalance + totalMv;
+    const topAssets = document.getElementById('top-bar-assets');
+    if (topAssets) topAssets.innerText = '¥' + totalAssets.toFixed(2);
+    const totalDisplay = document.getElementById('total-assets-display');
+    if (totalDisplay) totalDisplay.innerText = totalAssets.toFixed(2);
+
+    if (hasPnl) {
+        const totalPnlEl = document.getElementById('total-pnl-display');
+        if (totalPnlEl) {
+            const absPnl = Math.abs(totalPnl);
+            totalPnlEl.innerText = (totalPnl >= 0 ? '+' : '-') + '¥' + absPnl.toFixed(2);
+            totalPnlEl.style.color = totalPnl >= 0 ? 'var(--danger)' : 'var(--success)';
+        }
     }
 }
