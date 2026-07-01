@@ -4,6 +4,7 @@ uvicorn
 sqlalchemy
 pydantic
 passlib[bcrypt]
+pyjwt
 python-jose[cryptography]
 python-multipart
 akshare

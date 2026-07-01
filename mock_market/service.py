@@ -9,7 +9,7 @@ from datetime import datetime
 
 from mock_market.database import MockSessionLocal
 from mock_market.engine import MockPriceEngine
-from mock_market.models import DailyBar, MockCompany
+from mock_market.models import DailyBar, MockCompany, TickerSnapshot
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -132,6 +132,23 @@ def delete_company(code: str) -> bool:
             return False
         c.is_active = False
         c.updated_at = datetime.utcnow()
+        db.commit()
+        return True
+    finally:
+        db.close()
+
+
+def hard_delete_company(code: str) -> bool:
+    """硬删除：彻底移除公司及其所有关联数据（日线、快照）。"""
+    db = MockSessionLocal()
+    try:
+        c = db.query(MockCompany).filter(MockCompany.code == code).first()
+        if c is None:
+            return False
+        # 删除关联数据
+        db.query(DailyBar).filter(DailyBar.company_id == c.id).delete()
+        db.query(TickerSnapshot).filter(TickerSnapshot.company_id == c.id).delete()
+        db.delete(c)
         db.commit()
         return True
     finally:

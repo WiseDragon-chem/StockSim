@@ -1,9 +1,9 @@
 """
 mock_market 管理 API —— 查看和修改模拟公司及其超参数。
-前缀 /api/admin，无需认证（本地/开发使用）。
+前缀 /api/admin，读操作无需认证，写操作需管理员 token。
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from mock_market.engine import MockPriceEngine
 from mock_market.schemas import (
@@ -13,11 +13,14 @@ from mock_market.schemas import (
 from mock_market.service import (
     get_all_companies, get_company_by_code,
     create_company, update_company, delete_company,
-    get_company_bar_count,
+    get_company_bar_count, hard_delete_company,
 )
+from routers.admin_panel import require_admin
 
 router = APIRouter()
 
+
+# ── 读操作（无需认证）─────────────────────────────────────────────────
 
 @router.get("/companies", response_model=MockCompanyList)
 def list_companies():
@@ -45,8 +48,10 @@ def get_company(code: str):
     return MockCompanyDisplay.model_validate(c)
 
 
+# ── 写操作（需管理员认证）─────────────────────────────────────────────
+
 @router.post("/companies", response_model=MockCompanyDisplay, status_code=201)
-async def create_new_company(data: MockCompanyCreate):
+async def create_new_company(data: MockCompanyCreate, _admin: bool = Depends(require_admin)):
     """创建新的模拟公司，并通知引擎开始生成价格。"""
     if get_company_by_code(data.code) is not None:
         raise HTTPException(status_code=409, detail=f"公司 {data.code} 已存在")
@@ -58,7 +63,7 @@ async def create_new_company(data: MockCompanyCreate):
 
 
 @router.put("/companies/{code}", response_model=MockCompanyDisplay)
-async def update_company_params(code: str, data: MockCompanyUpdate):
+async def update_company_params(code: str, data: MockCompanyUpdate, _admin: bool = Depends(require_admin)):
     """更新公司超参数（部分更新），引擎实时生效。"""
     c = update_company(code, data.model_dump(exclude_unset=True))
     if c is None:
@@ -70,7 +75,7 @@ async def update_company_params(code: str, data: MockCompanyUpdate):
 
 
 @router.delete("/companies/{code}")
-async def deactivate_company(code: str):
+async def deactivate_company(code: str, _admin: bool = Depends(require_admin)):
     """停用公司（软删除），停止为该代码生成价格。"""
     if not delete_company(code):
         raise HTTPException(status_code=404, detail=f"公司 {code} 不存在")
@@ -80,8 +85,19 @@ async def deactivate_company(code: str):
     return {"detail": f"公司 {code} 已停用"}
 
 
+@router.delete("/companies/{code}/hard")
+async def hard_delete(code: str, _admin: bool = Depends(require_admin)):
+    """彻底删除公司及其所有历史 K 线数据（不可撤销）。"""
+    if not hard_delete_company(code):
+        raise HTTPException(status_code=404, detail=f"公司 {code} 不存在")
+
+    engine = MockPriceEngine.get_instance()
+    await engine.remove_company(code)
+    return {"detail": f"公司 {code} 已彻底删除"}
+
+
 @router.post("/companies/{code}/reset")
-async def reset_company(code: str):
+async def reset_company(code: str, _admin: bool = Depends(require_admin)):
     """重置公司：清除所有历史 K 线，价格回到 initial_price 重新开始。"""
     c = get_company_by_code(code)
     if c is None:

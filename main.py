@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from core.database import engine, Base
 from mock_market.database import init_mock_db
 from mock_market.engine import MockPriceEngine
-from routers import users, market, trade, ws, mock_admin
+from routers import users, market, trade, ws, mock_admin, admin_panel
 
 # 1. 创建数据库表 (如果不存在) —— 主 DB
 Base.metadata.create_all(bind=engine)
@@ -43,6 +43,7 @@ app.include_router(market.router, prefix="/api/market", tags=["Market"])
 app.include_router(trade.router, prefix="/api/trade", tags=["Trade"])
 app.include_router(ws.router, prefix="/api", tags=["WebSocket"])
 app.include_router(mock_admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(admin_panel.router, tags=["AdminPanel"])
 
 # 5. 编译教程 Markdown → HTML（启动时执行一次）
 def build_help_page():

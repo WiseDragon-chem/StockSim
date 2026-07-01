@@ -549,6 +549,11 @@ class MockPriceEngine:
         finally:
             db.close()
 
+    async def remove_company(self, code: str) -> bool:
+        """停止并移除指定公司的 ticker（管理员硬删除后调用）。"""
+        ticker = self.tickers.pop(code, None)
+        return ticker is not None
+
     async def add_company(self, code: str) -> bool:
         """动态添加新公司到引擎（管理员创建后调用）。"""
         db = MockSessionLocal()
