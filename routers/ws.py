@@ -66,7 +66,7 @@ async def websocket_all_prices(websocket: WebSocket):
 
     try:
         while True:
-            prices = engine.get_all_ticker_prices()
+            prices = await run_in_threadpool(engine.get_all_ticker_prices)
             if prices:
                 try:
                     await websocket.send_json({

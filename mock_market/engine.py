@@ -89,6 +89,8 @@ class CompanyTicker:
 
         self.day_high = self.day_open
         self.day_low = self.day_open
+        self.session_high = self.day_open
+        self.session_low = self.day_open
         self.current_date = day_str
         self.tick_index = 0
         self.volume = 0
@@ -310,11 +312,18 @@ class MockPriceEngine:
 
                     with ticker.lock:
                         prev_date = ticker.current_date
+
+                        # 日切换 → 在 advance 前捕获旧日线
+                        completed_bar = None
+                        if prev_date and ticker.tick_index >= ticker.ticks_per_day:
+                            completed_bar = ticker.current_bar()
+
                         ticker.advance()
 
-                        # 日切换 → 保存已完成日线
-                        if prev_date and ticker.current_date != prev_date:
-                            self._save_daily_bar(ticker, prev_date, db)
+                        if completed_bar is not None:
+                            self._save_daily_bar_from_dict(
+                                ticker, prev_date, completed_bar, db
+                            )
 
                         # 定期快照
                         cnt = tick_counter.get(code, 0) + 1
@@ -347,7 +356,15 @@ class MockPriceEngine:
                 setattr(snap, k, v)
 
     def _save_daily_bar(self, ticker: CompanyTicker, day_str: str, db) -> None:
-        """保存一根已完成的日线到 daily_bars 表。"""
+        """保存一根已完成的日线（从当前 ticker 状态读取）。"""
+        bar = ticker.current_bar()
+        if bar is not None:
+            self._save_daily_bar_from_dict(ticker, day_str, bar, db)
+
+    def _save_daily_bar_from_dict(
+        self, ticker: CompanyTicker, day_str: str, bar: dict, db
+    ) -> None:
+        """用给定的 bar dict 保存日线（供 _run_loop 和 _fast_forward 使用）。"""
         existing = db.query(DailyBar).filter(
             DailyBar.company_id == ticker.company_id,
             DailyBar.date == day_str,
@@ -355,16 +372,16 @@ class MockPriceEngine:
         if existing is not None:
             return  # 已有，跳过
 
-        bar = DailyBar(
+        bar_obj = DailyBar(
             company_id=ticker.company_id,
             date=day_str,
-            open=round(ticker.day_open, 2),
-            high=round(ticker.session_high, 2),
-            low=round(ticker.session_low, 2),
-            close=round(ticker.price, 2),
-            volume=ticker.volume,
+            open=round(bar["open"], 2),
+            high=round(bar["high"], 2),
+            low=round(bar["low"], 2),
+            close=round(bar["close"], 2),
+            volume=bar["volume"],
         )
-        db.add(bar)
+        db.add(bar_obj)
 
     # ── 恢复 / 历史 ────────────────────────────────────────────────
 
@@ -380,7 +397,9 @@ class MockPriceEngine:
         while current < today_str:
             # 把当天剩下的 tick 走完（用快速 bulk 模拟代替逐 tick）
             self._simulate_day_close(ticker)
-            self._save_daily_bar(ticker, current, db)
+            # 在 _start_new_day 前捕获旧日线
+            completed_bar = ticker.current_bar()
+            self._save_daily_bar_from_dict(ticker, current, completed_bar, db)
             next_date = _add_days(current, 1)
             ticker.price = ticker.day_close_target
             ticker._start_new_day(next_date)
@@ -402,6 +421,11 @@ class MockPriceEngine:
                 ticker.price = ticker.price_min
             elif ticker.price > ticker.price_max:
                 ticker.price = ticker.price_max
+            # 同步更新 day 和 session 极值
+            if ticker.price > ticker.day_high:
+                ticker.day_high = ticker.price
+            if ticker.price < ticker.day_low:
+                ticker.day_low = ticker.price
             if ticker.price > ticker.session_high:
                 ticker.session_high = ticker.price
             if ticker.price < ticker.session_low:
