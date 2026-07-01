@@ -68,7 +68,7 @@ A **Chinese A-share stock market simulator** — Fullstack FastAPI + vanilla JS 
 
 ### Key Design Decisions & Gotchas
 
-- **Trade price is frontend-supplied.** `TradeRequest.price` comes from the client — intentional for a simulator.
+- **Trade price is server-authoritative.** The server fetches the current market price from `MockPriceEngine` (mock) or `get_stock_kline` (real A-shares) at trade time. The client no longer sends a price.
 - **`routers/` has no `__init__.py`** — implicit namespace packages (Python 3.3+).
 - **SQLite + async**: `check_same_thread=False`. Use `SessionLocal` per-request (`get_db` dependency).
 - **AkShare rate-limiting**: don't query too fast or 同花顺 blocks the IP. 1h cache mitigates this.

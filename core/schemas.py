@@ -10,8 +10,7 @@ class UserCreate(UserBase):
 
 class TradeRequest(BaseModel):
     symbol: str
-    price: float  # 模拟交易允许前端传入当前价格
-    quantity: int
+    quantity: int  # 价格由服务器端获取，不再接受客户端传入
 
 class PositionDisplay(BaseModel):
     symbol: str
